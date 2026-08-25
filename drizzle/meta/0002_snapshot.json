@@ -1,0 +1,362 @@
+{
+  "id": "0a46e2bb-f302-4eb1-bad1-06585f74721d",
+  "prevId": "e9be5a32-7174-4e3f-bcdc-dee07e316367",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.cpr_data": {
+      "name": "cpr_data",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "instrument_id": {
+          "name": "instrument_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "instrument_symbol": {
+          "name": "instrument_symbol",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "instrument_category": {
+          "name": "instrument_category",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "trading_date": {
+          "name": "trading_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source_date": {
+          "name": "source_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "high": {
+          "name": "high",
+          "type": "numeric(20, 4)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "low": {
+          "name": "low",
+          "type": "numeric(20, 4)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "close": {
+          "name": "close",
+          "type": "numeric(20, 4)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "pivot": {
+          "name": "pivot",
+          "type": "numeric(20, 4)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "bc": {
+          "name": "bc",
+          "type": "numeric(20, 4)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tc": {
+          "name": "tc",
+          "type": "numeric(20, 4)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "cpr_width": {
+          "name": "cpr_width",
+          "type": "numeric(20, 4)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "cpr_width_percent": {
+          "name": "cpr_width_percent",
+          "type": "numeric(12, 6)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "points_classification": {
+          "name": "points_classification",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "percentage_classification": {
+          "name": "percentage_classification",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "overall_classification": {
+          "name": "overall_classification",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "classification_basis": {
+          "name": "classification_basis",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "classification_method": {
+          "name": "classification_method",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "resolved_method": {
+          "name": "resolved_method",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "methods_agree": {
+          "name": "methods_agree",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "inverted": {
+          "name": "inverted",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "r1": {
+          "name": "r1",
+          "type": "numeric(20, 4)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "r2": {
+          "name": "r2",
+          "type": "numeric(20, 4)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "r3": {
+          "name": "r3",
+          "type": "numeric(20, 4)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "r4": {
+          "name": "r4",
+          "type": "numeric(20, 4)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "r5": {
+          "name": "r5",
+          "type": "numeric(20, 4)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "s1": {
+          "name": "s1",
+          "type": "numeric(20, 4)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "s2": {
+          "name": "s2",
+          "type": "numeric(20, 4)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "s3": {
+          "name": "s3",
+          "type": "numeric(20, 4)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "s4": {
+          "name": "s4",
+          "type": "numeric(20, 4)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "s5": {
+          "name": "s5",
+          "type": "numeric(20, 4)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "data_source": {
+          "name": "data_source",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "provider_symbol": {
+          "name": "provider_symbol",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "projected": {
+          "name": "projected",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "cpr_data_symbol_date_unq": {
+          "name": "cpr_data_symbol_date_unq",
+          "columns": [
+            {
+              "expression": "instrument_symbol",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "trading_date",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "cpr_data_symbol_idx": {
+          "name": "cpr_data_symbol_idx",
+          "columns": [
+            {
+              "expression": "instrument_symbol",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "cpr_data_trading_date_idx": {
+          "name": "cpr_data_trading_date_idx",
+          "columns": [
+            {
+              "expression": "trading_date",
+              "isExpression": false,
+              "asc": false,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "cpr_data_category_idx": {
+          "name": "cpr_data_category_idx",
+          "columns": [
+            {
+              "expression": "instrument_category",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "cpr_data_overall_classification_idx": {
+          "name": "cpr_data_overall_classification_idx",
+          "columns": [
+            {
+              "expression": "overall_classification",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "cpr_data_symbol_date_idx": {
+          "name": "cpr_data_symbol_date_idx",
+          "columns": [
+            {
+              "expression": "instrument_symbol",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "trading_date",
+              "isExpression": false,
+              "asc": false,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {},
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}
