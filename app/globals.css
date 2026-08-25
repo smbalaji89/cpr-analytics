@@ -9,18 +9,18 @@
  */
 @theme {
   --color-surface: #ffffff;
-  --color-surface-muted: #f9fafb;
+  --color-surface-muted: #f6f7f9;
   --color-surface-raised: #ffffff;
 
   --color-ink: #111827;
   --color-ink-secondary: #1f2937;
-  --color-ink-muted: #6b7280;
+  --color-ink-muted: #52606d;
 
   --color-brand: #7c3aed;
   --color-brand-soft: #a78bfa;
   --color-brand-tint: #f3e8ff;
 
-  --color-line: #e5e7eb;
+  --color-line: #e3e6ea;
 
   --color-cls-narrow: #7c3aed;
   --color-cls-mixed: #d97706;
@@ -39,19 +39,19 @@
 /* Dark surface set. Utilities reference the vars above, so overriding them here
    re-themes the whole app without duplicating a single utility class. */
 .dark {
-  --color-surface: #111827;
-  --color-surface-muted: #1f2937;
-  --color-surface-raised: #1f2937;
+  --color-surface: #0f151f;
+  --color-surface-muted: #141c28;
+  --color-surface-raised: #1b2534;
 
   --color-ink: #f9fafb;
   --color-ink-secondary: #e5e7eb;
-  --color-ink-muted: #9ca3af;
+  --color-ink-muted: #a7b0bd;
 
   --color-brand: #a78bfa;
   --color-brand-soft: #7c3aed;
   --color-brand-tint: #2e1065;
 
-  --color-line: #374151;
+  --color-line: #2b3648;
 
   /* Re-validated against the dark surface — see lib/theme/tokens.ts. */
   --color-cls-narrow: #8b5cf6;

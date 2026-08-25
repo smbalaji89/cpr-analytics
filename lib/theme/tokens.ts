@@ -19,7 +19,7 @@ export const palette = {
   primaryPurple: "#7C3AED",
   secondaryPurple: "#A78BFA",
   lightPurple: "#F3E8FF",
-  border: "#E5E7EB",
+  border: "#E3E6EA",
 } as const;
 
 /**
@@ -68,18 +68,18 @@ export const classificationColorsDark = {
 } as const;
 
 export const chartColors = {
-  grid: "#E5E7EB",
-  axis: "#6B7280",
+  grid: "#E3E6EA",
+  axis: "#52606D",
   tooltipBg: "#FFFFFF",
-  tooltipBorder: "#E5E7EB",
+  tooltipBorder: "#E3E6EA",
   tooltipText: "#111827",
 } as const;
 
 export const chartColorsDark = {
-  grid: "#374151",
-  axis: "#9CA3AF",
-  tooltipBg: "#1F2937",
-  tooltipBorder: "#374151",
+  grid: "#2B3648",
+  axis: "#A7B0BD",
+  tooltipBg: "#1B2534",
+  tooltipBorder: "#2B3648",
   tooltipText: "#F9FAFB",
 } as const;
 

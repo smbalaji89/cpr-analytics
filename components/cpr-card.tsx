@@ -3,10 +3,10 @@ import {
   ClassificationBadge,
   ClassificationBreakdown,
 } from "@/components/classification-badge";
+import { CPRRange, Stat } from "@/components/cpr-range";
 import { Card } from "@/components/ui/card";
 import type { Horizon } from "@/lib/services/cpr-service";
 import type { CPRRecord, CPRUnavailable } from "@/lib/types";
-import { cn } from "@/lib/utils/cn";
 import { formatDisplayDate, formatWeekday } from "@/lib/utils/date";
 import { formatPercent, formatPrice, formatWidth } from "@/lib/utils/format";
 
@@ -17,63 +17,6 @@ const HORIZON_LABEL: Record<Horizon, string> = {
   CURRENT: "Current Trading Day",
   HISTORICAL: "Trading Day",
 };
-
-function Level({
-  label,
-  value,
-  emphasis,
-}: {
-  label: string;
-  value: number;
-  emphasis?: boolean;
-}) {
-  return (
-    <div
-      className={cn(
-        "rounded-lg border px-3 py-3 text-center",
-        emphasis
-          ? "border-brand/30 bg-brand-tint"
-          : "border-line bg-surface-muted",
-      )}
-    >
-      <div className="text-[11px] font-medium uppercase tracking-wide text-ink-muted">
-        {label}
-      </div>
-      <div
-        className={cn(
-          "numeric mt-1 text-base font-semibold sm:text-lg",
-          emphasis ? "text-brand" : "text-ink",
-        )}
-      >
-        {formatPrice(value)}
-      </div>
-    </div>
-  );
-}
-
-function Metric({
-  label,
-  value,
-  hint,
-}: {
-  label: string;
-  value: React.ReactNode;
-  hint?: string;
-}) {
-  return (
-    <div className="rounded-lg border border-line bg-surface-muted px-3 py-3">
-      <div className="text-[11px] font-medium uppercase tracking-wide text-ink-muted">
-        {label}
-      </div>
-      <div className="numeric mt-1 text-sm font-semibold text-ink sm:text-base">
-        {value}
-      </div>
-      {hint ? (
-        <div className="mt-0.5 text-[11px] text-ink-muted">{hint}</div>
-      ) : null}
-    </div>
-  );
-}
 
 /** PRD §27/§29: a reason, never a zero. */
 export function CPRUnavailableCard({
@@ -123,17 +66,21 @@ export function CPRCard({
 }) {
   return (
     <Card className="overflow-hidden">
-      <div className="border-b border-line px-4 py-4 sm:px-5">
+      <div className="border-b border-line bg-surface-muted/40 px-4 py-4 sm:px-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
-            <div className="text-[11px] font-medium uppercase tracking-wide text-brand">
-              {HORIZON_LABEL[horizon]}
-              {record.projected ? " · projected" : ""}
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] font-semibold uppercase tracking-wider text-brand">
+              <span>{HORIZON_LABEL[horizon]}</span>
+              {record.projected ? (
+                <span className="rounded bg-brand-tint px-1.5 py-0.5 text-brand">
+                  projected
+                </span>
+              ) : null}
             </div>
-            <h2 className="mt-1 truncate text-xl font-semibold tracking-tight text-ink sm:text-2xl">
+            <h2 className="mt-1.5 truncate text-2xl font-semibold tracking-tight text-ink sm:text-3xl">
               {record.instrumentName}
             </h2>
-            <p className="numeric mt-0.5 text-sm text-ink-muted">
+            <p className="numeric mt-1 text-sm text-ink-muted">
               {formatDisplayDate(record.tradingDate)} ·{" "}
               {formatWeekday(record.tradingDate)}
             </p>
@@ -143,16 +90,26 @@ export function CPRCard({
       </div>
 
       <div className="px-4 py-4 sm:px-5">
-        {/* BC / P / TC — the three levels the dashboard leads with (PRD §14). */}
-        <div className="grid grid-cols-3 gap-2 sm:gap-3">
-          <Level label="BC" value={record.bc} />
-          <Level label="Pivot" value={record.pivot} emphasis />
-          <Level label="TC" value={record.tc} />
-        </div>
-
-        <div className="mt-3 grid grid-cols-2 gap-2 sm:gap-3">
-          <Metric label="CPR Width" value={formatWidth(record.cprWidth)} />
-          <Metric label="Width %" value={formatPercent(record.cprWidthPercent)} />
+        {/* The range itself, then the two figures that describe it (PRD §14). */}
+        <div className="grid gap-3 sm:grid-cols-5">
+          <CPRRange
+            bc={record.bc}
+            pivot={record.pivot}
+            tc={record.tc}
+            className="sm:col-span-3"
+          />
+          <div className="grid grid-cols-2 gap-3 sm:col-span-2 sm:grid-cols-1">
+            <Stat
+              label="CPR Width"
+              value={formatWidth(record.cprWidth)}
+              emphasis
+            />
+            <Stat
+              label="Width %"
+              value={formatPercent(record.cprWidthPercent)}
+              emphasis
+            />
+          </div>
         </div>
 
         {record.inverted ? (
@@ -179,15 +136,27 @@ export function CPRCard({
         </div>
 
         {/* Source session — PRD §13, and the answer to "which day made this?" */}
-        <div className="mt-4 border-t border-line pt-4">
-          <div className="text-[11px] font-medium uppercase tracking-wide text-ink-muted">
-            Derived from the completed {formatDisplayDate(record.sourceDate)}{" "}
-            session
-          </div>
-          <div className="mt-2 grid grid-cols-3 gap-2 sm:gap-3">
-            <Metric label="High" value={formatPrice(record.high)} />
-            <Metric label="Low" value={formatPrice(record.low)} />
-            <Metric label="Close" value={formatPrice(record.close)} />
+        <div className="mt-4 border-t border-line pt-3.5">
+          <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
+            <span className="text-[11px] font-medium uppercase tracking-wider text-ink-muted">
+              Derived from {formatDisplayDate(record.sourceDate)}
+            </span>
+            <dl className="numeric flex flex-wrap items-baseline gap-x-5 gap-y-1 text-sm">
+              {(
+                [
+                  ["High", record.high],
+                  ["Low", record.low],
+                  ["Close", record.close],
+                ] as const
+              ).map(([label, value]) => (
+                <div key={label} className="flex items-baseline gap-1.5">
+                  <dt className="text-[11px] uppercase tracking-wider text-ink-muted">
+                    {label}
+                  </dt>
+                  <dd className="font-medium text-ink">{formatPrice(value)}</dd>
+                </div>
+              ))}
+            </dl>
           </div>
         </div>
 

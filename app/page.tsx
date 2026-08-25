@@ -25,6 +25,7 @@ import {
   TableSkeleton,
 } from "@/components/ui/skeleton";
 import { classificationLabel } from "@/lib/cpr/classification";
+import { formatPrice } from "@/lib/utils/format";
 import { parseCategoryFilter, type CategoryFilter } from "@/lib/cpr/filter";
 import { DEFAULT_INSTRUMENT_SYMBOL, getInstrument } from "@/lib/instruments";
 import { retentionDays } from "@/lib/services/retention";
@@ -210,6 +211,40 @@ async function DashboardContent({
         </div>
 
         <div className="space-y-4">
+          {lookup.available ? (
+            <Card>
+              <CardHeader>
+                <CardTitle>At a glance</CardTitle>
+                <CardDescription>
+                  {instrument.name} · {lookup.record.currency}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="pt-3">
+                <dl className="space-y-2.5">
+                  {(
+                    [
+                      ["Category", classificationLabel(lookup.record.overallClassification)],
+                      ["Decided by", lookup.record.classificationMethod === "POINTS" ? "Width in points" : "Width %"],
+                      ["Range", `${formatPrice(lookup.record.bc)} – ${formatPrice(lookup.record.tc)}`],
+                      ["Session", lookup.record.sourceDate],
+                      ["Series", lookup.record.providerSymbol],
+                    ] as const
+                  ).map(([label, value]) => (
+                    <div
+                      key={label}
+                      className="flex items-baseline justify-between gap-3 border-b border-line pb-2.5 last:border-0 last:pb-0"
+                    >
+                      <dt className="text-xs text-ink-muted">{label}</dt>
+                      <dd className="numeric text-right text-sm font-medium text-ink">
+                        {value}
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+              </CardContent>
+            </Card>
+          ) : null}
+
           {lookup.available && showLevels ? (
             <PivotLevelsPanel
               levels={lookup.record.pivotLevels}
