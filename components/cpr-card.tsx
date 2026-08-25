@@ -77,7 +77,7 @@ export function CPRCard({
                 </span>
               ) : null}
             </div>
-            <h2 className="mt-1.5 truncate text-2xl font-semibold tracking-tight text-ink sm:text-3xl">
+            <h2 className="mt-1.5 truncate text-xl font-semibold tracking-tight text-ink sm:text-2xl">
               {record.instrumentName}
             </h2>
             <p className="numeric mt-1 text-sm text-ink-muted">
@@ -91,7 +91,7 @@ export function CPRCard({
 
       <div className="px-4 py-4 sm:px-5">
         {/* The range itself, then the two figures that describe it (PRD §14). */}
-        <div className="grid gap-3 sm:grid-cols-5">
+        <div className="grid items-stretch gap-3 sm:grid-cols-5">
           <CPRRange
             bc={record.bc}
             pivot={record.pivot}
@@ -113,12 +113,12 @@ export function CPRCard({
         </div>
 
         {record.inverted ? (
-          <p className="mt-3 flex items-start gap-2 rounded-lg bg-surface-muted px-3 py-2 text-xs text-ink-muted">
-            <ArrowLeftRight className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
+          <p className="mt-2.5 flex items-start gap-1.5 px-1 text-xs leading-relaxed text-ink-muted">
+            <ArrowLeftRight className="mt-0.5 h-3 w-3 shrink-0" aria-hidden />
             <span>
-              <span className="font-medium text-ink">Inverted CPR.</span> The raw
-              formula produced BC above TC; the two were swapped so TC ≥ BC. The
-              width is unaffected.
+              <span className="font-medium text-ink">Inverted CPR</span> — the raw
+              formula produced BC above TC, so the two were swapped to keep
+              TC ≥ BC. The width is unaffected.
             </span>
           </p>
         ) : null}

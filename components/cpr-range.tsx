@@ -14,37 +14,59 @@ import { formatPrice } from "@/lib/utils/format";
  * to fill the panel would misrepresent how wide the range is. So the rows are
  * evenly spaced and the width is stated numerically beside it, where it can be
  * read exactly.
+ *
+ * ── Why the connector is a flex rail, not an absolute band ─────────────────
+ * An absolutely-positioned band has to guess where the first and last rows
+ * land, and any padding change silently misaligns it. Here the rail is a real
+ * grid column: the line runs between the first and last markers by
+ * construction, so it cannot drift.
  */
 
-function Level({
-  label,
-  value,
-  tone,
-}: {
+interface LevelProps {
   label: string;
   value: number;
   tone: "edge" | "pivot";
-}) {
+  position: "top" | "middle" | "bottom";
+}
+
+function Level({ label, value, tone, position }: LevelProps) {
   const isPivot = tone === "pivot";
   return (
-    <div className="relative flex items-center justify-between gap-4 py-2.5">
-      <div className="flex items-center gap-2.5">
+    <div
+      className={cn(
+        "relative grid grid-cols-[auto_1fr_auto] items-center gap-3 px-3",
+        // Even row heights keep the ladder schematic rather than implying scale.
+        "py-3 sm:py-3.5",
+        isPivot && "rounded-lg bg-brand/[0.08]",
+      )}
+    >
+      {/* Rail: a continuous line through all three rows, capped at the ends. */}
+      <span aria-hidden className="relative flex h-full w-3 justify-center">
         <span
-          aria-hidden
           className={cn(
-            "block rounded-full",
-            isPivot ? "h-3.5 w-1 bg-brand" : "h-2 w-1 bg-ink-muted/50",
+            "absolute w-px bg-brand/30",
+            position === "top" && "top-1/2 bottom-0",
+            position === "middle" && "inset-y-0",
+            position === "bottom" && "top-0 bottom-1/2",
           )}
         />
         <span
           className={cn(
-            "text-[11px] font-semibold uppercase tracking-wider",
-            isPivot ? "text-brand" : "text-ink-muted",
+            "relative z-10 self-center rounded-full ring-2 ring-surface-raised",
+            isPivot ? "h-2.5 w-2.5 bg-brand" : "h-2 w-2 bg-brand/45",
           )}
-        >
-          {label}
-        </span>
-      </div>
+        />
+      </span>
+
+      <span
+        className={cn(
+          "text-[11px] font-semibold uppercase tracking-wider",
+          isPivot ? "text-brand" : "text-ink-muted",
+        )}
+      >
+        {label}
+      </span>
+
       <span
         className={cn(
           "numeric tabular-nums",
@@ -73,20 +95,15 @@ export function CPRRange({
   return (
     <div
       className={cn(
-        "relative overflow-hidden rounded-xl border border-line bg-surface-raised px-4 py-1",
+        // `justify-center` absorbs any extra height from a taller neighbour
+        // instead of leaving a gap below the last row.
+        "flex h-full flex-col justify-center rounded-xl border border-line bg-surface-raised p-1.5",
         className,
       )}
     >
-      {/* The band between the two edges, tinted to read as one continuous range. */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-[18%] bottom-[18%] bg-gradient-to-b from-brand/[0.07] via-brand/[0.12] to-brand/[0.07]"
-      />
-      <div className="relative divide-y divide-line/70">
-        <Level label="TC" value={tc} tone="edge" />
-        <Level label="Pivot" value={pivot} tone="pivot" />
-        <Level label="BC" value={bc} tone="edge" />
-      </div>
+      <Level label="TC" value={tc} tone="edge" position="top" />
+      <Level label="Pivot" value={pivot} tone="pivot" position="middle" />
+      <Level label="BC" value={bc} tone="edge" position="bottom" />
     </div>
   );
 }
@@ -108,7 +125,7 @@ export function Stat({
   return (
     <div
       className={cn(
-        "rounded-xl border border-line bg-surface-raised px-4 py-3.5",
+        "flex flex-col justify-center rounded-xl border border-line bg-surface-raised px-4 py-3.5",
         className,
       )}
     >
@@ -118,7 +135,7 @@ export function Stat({
       <div
         className={cn(
           "numeric mt-1 font-semibold text-ink",
-          emphasis ? "text-2xl sm:text-3xl" : "text-lg sm:text-xl",
+          emphasis ? "text-2xl sm:text-[1.75rem]" : "text-lg sm:text-xl",
         )}
       >
         {value}

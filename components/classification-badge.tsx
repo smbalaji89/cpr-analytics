@@ -105,9 +105,9 @@ export function ClassificationBreakdown({
     return (
       <div
         className={cn(
-          "rounded-lg border px-3 py-2",
+          "rounded-lg border px-3 py-2.5",
           isDeciding
-            ? "border-brand/40 bg-brand-tint"
+            ? "border-brand/40 bg-brand/[0.07]"
             : "border-line bg-surface-muted",
         )}
       >
