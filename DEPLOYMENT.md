@@ -32,10 +32,19 @@ gh repo create cpr-analytics --private --source=. --push
    password when it is shown — it is not retrievable later.
 2. **Settings → Database → Connection string.** Copy **both**:
 
-| String | Port | Goes to | Why |
+Supabase offers three. Identify them by **hostname and port**, which stay
+constant even as the dashboard UI changes:
+
+| Mode | Host / port | Use for | Notes |
 | --- | --- | --- | --- |
-| **Transaction pooler** | `6543` | `DATABASE_URL` | Serverless-safe. Vercel opens many short-lived connections. |
-| **Direct** | `5432` | local `.env.local` only | For migrations. IPv6-only, so it will not work from Vercel. |
+| **Transaction pooler** | `aws-0-<region>.pooler.supabase.com:6543` | `DATABASE_URL` (app + Vercel) | Serverless-safe; Vercel opens many short-lived connections |
+| **Session pooler** | `aws-0-<region>.pooler.supabase.com:5432` | `DIRECT_DATABASE_URL` (migrations) | Full Postgres protocol, and reachable over **IPv4** |
+| **Direct** | `db.<ref>.supabase.co:5432` | migrations, *if* you have IPv6 | **IPv6-only** — fails on most home/office networks and on Vercel |
+
+**Use the session pooler for migrations unless you know you have IPv6.** Both it
+and the direct connection run DDL correctly, but the direct host resolves only
+over IPv6, so on a typical IPv4 network it fails with `ENETUNREACH` — which
+looks like a credentials problem but is not.
 
 URL-encode special characters in the password: `@` → `%40`, `#` → `%23`,
 `/` → `%2F`. An un-encoded `@` is the most common cause of an auth failure.
@@ -44,7 +53,8 @@ URL-encode special characters in the password: `@` → `%40`, `#` → `%23`,
 
 ## 3. Apply migrations (from your machine, once)
 
-Vercel does not run migrations. Put the **direct** string in `.env.local`:
+Vercel does not run migrations. Put the **session pooler** string (port 5432) in
+`.env.local` as `DIRECT_DATABASE_URL`:
 
 ```bash
 DIRECT_DATABASE_URL=postgresql://postgres.<ref>:<password>@aws-0-<region>.pooler.supabase.com:5432/postgres
@@ -166,6 +176,8 @@ git add drizzle/ lib/db/schema.ts && git commit -m "..." && git push
 | Build fails on `next build` | Run `npm run build` locally first — it must pass before pushing. |
 | `/settings` shows "Configured but unreachable" | You used the direct (5432) string on Vercel. Switch to the pooler (6543). |
 | Auth failure connecting | Un-encoded `@` or `#` in the password. |
+| `ENETUNREACH` on migrate | You used the direct `db.<ref>.supabase.co` host, which is IPv6-only. Use the session pooler (`pooler.supabase.com:5432`). |
+| Forgot the database password | Supabase → Settings → Database → **Reset database password**. The connection strings change with it. |
 | Cron returns 401 | `CRON_SECRET` missing on Vercel, or set only for Preview and not Production. |
 | Sync button says "disabled" | `CRON_SECRET` is not set — the action fails closed by design. |
 | Data looks synthetic, red banner shows | `MARKET_DATA_PROVIDER` is set to `mock`. Remove it or set `yahoo`. |
