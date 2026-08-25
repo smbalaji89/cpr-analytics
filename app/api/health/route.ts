@@ -39,6 +39,32 @@ export async function GET() {
     VERCEL_REGION: process.env.VERCEL_REGION ?? "(not on Vercel)",
   };
 
+  /**
+   * Which deployment is actually answering.
+   *
+   * Environment variables are captured per deployment, so adding one in the
+   * dashboard does nothing until a NEW deployment is created — and a var scoped
+   * to Preview is invisible to Production. Both mistakes look identical from
+   * the outside ("I set it and it is still not there"), so the deployment
+   * identity is reported alongside.
+   */
+  const deployment = {
+    vercelEnv: process.env.VERCEL_ENV ?? "(not on Vercel)",
+    commit: process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? "(unknown)",
+    branch: process.env.VERCEL_GIT_COMMIT_REF ?? "(unknown)",
+    url: process.env.VERCEL_URL ?? "(unknown)",
+  };
+
+  /**
+   * Names of every env var that looks related, values omitted.
+   *
+   * Catches the case a plain "is it set?" check cannot: the value IS present
+   * but under a misspelled key, so the app never reads it.
+   */
+  const relatedKeys = Object.keys(process.env)
+    .filter((k) => /CRON|SECRET|DATABASE|MARKET|RETENTION|SUPABASE/i.test(k))
+    .sort();
+
   // ── Market data ──────────────────────────────────────────────────────────
   const provider: Record<string, unknown> = {};
   const providerStart = Date.now();
@@ -84,7 +110,9 @@ export async function GET() {
   return apiSuccess(
     {
       healthy: provider.ok === true,
+      deployment,
       config,
+      relatedEnvKeysPresent: relatedKeys,
       provider,
       database,
       totalMs: Date.now() - started,
