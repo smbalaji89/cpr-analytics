@@ -267,10 +267,23 @@ export class YahooFinanceProvider implements MarketDataProvider {
    *
    *  2. Completeness is decided per bar. Any bar dated before "today in the
    *     exchange timezone" is finished. Today's bar is finished only if the
-   *     regular session end has actually passed. When completeness cannot be
-   *     PROVEN, the bar is marked incomplete — the safe direction, since the
-   *     worst case is falling back to the prior session rather than publishing a
-   *     CPR built from a half-formed candle.
+   *     regular session end has passed AND the vendor has actually SETTLED it.
+   *     When completeness cannot be PROVEN, the bar is marked incomplete — the
+   *     safe direction, since the worst case is falling back to the prior
+   *     session rather than publishing a CPR built from a half-formed candle.
+   *
+   * ── Why the session clock alone is not enough ──────────────────────────
+   * Observed on ^NSEI 14 minutes after the 2026-08-25 close: the bar read
+   * O 24175.75 / H 24334.55 / L 24115.45 / C 24334.55 with volume 0, while the
+   * two preceding sessions carried 236,300 and 259,300. The close was simply
+   * the live last price stitched into a bar the vendor had not finalised — and
+   * ^BSESN's bar for the same moment reported close 77,645.21 ABOVE its high of
+   * 77,587.56, which is impossible.
+   *
+   * Taking that bar as complete produced a CPR for the next session that would
+   * silently change once the vendor settled. So a just-closed bar must also be
+   * internally coherent, and must carry volume when that instrument reports
+   * volume at all.
    */
   private parseBars(
     result: NonNullable<YahooChartResponse["chart"]["result"]>[number],
@@ -293,6 +306,17 @@ export class YahooFinanceProvider implements MarketDataProvider {
 
     const bars: SessionBar[] = [];
     const seen = new Set<ISODate>();
+
+    /*
+     * Does this instrument report volume at all?
+     *
+     * Derived from the data rather than assumed: requiring volume from a series
+     * that never carries it would mark every bar incomplete forever. Only when
+     * other bars DO carry volume is a zero on the just-closed bar meaningful.
+     */
+    const reportsVolume = (quote.volume ?? []).some(
+      (v) => typeof v === "number" && v > 0,
+    );
 
     for (let i = 0; i < timestamps.length; i++) {
       const open = quote.open?.[i];
@@ -317,11 +341,20 @@ export class YahooFinanceProvider implements MarketDataProvider {
       if (seen.has(date)) continue;
       seen.add(date);
 
+      const volume = quote.volume?.[i] ?? null;
+
       let complete: boolean;
       if (date < todayTz) {
         complete = true;
       } else if (date === todayTz && regularEndDate === todayTz && regularEnd) {
-        complete = nowSeconds >= regularEnd;
+        // The session clock has to have passed...
+        const sessionEnded = nowSeconds >= regularEnd;
+        // ...the bar has to be internally coherent (a live last price spliced
+        // into an unsettled bar routinely breaks this)...
+        const coherent = close >= low && close <= high;
+        // ...and it has to carry volume, when this instrument reports volume.
+        const settled = !reportsVolume || (typeof volume === "number" && volume > 0);
+        complete = sessionEnded && coherent && settled;
       } else {
         complete = false;
       }
@@ -332,7 +365,7 @@ export class YahooFinanceProvider implements MarketDataProvider {
         high,
         low,
         close,
-        volume: quote.volume?.[i] ?? null,
+        volume,
         complete,
       });
     }

@@ -742,7 +742,7 @@ UI states that a projected date may land on an unlisted holiday.
 ## Testing
 
 ```bash
-npm test                        # 219 tests, hermetic and offline
+npm test                        # 224 tests, hermetic and offline
 npm run test:watch              # watch mode
 ```
 
@@ -769,6 +769,7 @@ set RUN_LIVE_TESTS=1 && npm test               :: cmd.exe
 | `tests/theme.test.ts` | `tokens.ts` and `globals.css` cannot drift apart |
 | `tests/env.test.ts` | Blank environment variables behave exactly like unset ones |
 | `tests/settings-actions.test.ts` | Admin actions always resolve, authorise correctly, never echo the secret |
+| `tests/settlement.test.ts` | A just-closed bar must be proven settled, not merely past its session clock |
 | `tests/contracts.test.ts` | Futures month-code generation, year rollover, liquidity ranking |
 | `tests/db-fallback.test.ts` | Database read path: sufficiency, merge, failure fallback, no mock persistence |
 | `tests/db-integration.test.ts` | **Real Postgres**: migrations, constraints, upsert idempotency, numeric round-trip, retention, reconciliation |
@@ -807,12 +808,23 @@ These are real and deliberate; none is silently papered over in the UI.
    change or rate limiting. Fine for evaluation; swap it for a commercial feed
    before relying on it.
 
-   It also returns *incoherent in-progress bars*: mid-session it stitches a live
-   last price into `close` while the day's aggregated `high`/`low` still lag.
-   Observed on BTC-USD — close 79,769.17 against a high of 79,643.41. Such bars
-   are marked `complete: false` and are never used for a CPR, which is exactly
-   what PRD §23 requires; `tests/provider.live.test.ts` asserts that any
-   incoherent bar is an incomplete one.
+   It also returns *unsettled bars*, in two distinct ways.
+
+   **Mid-session**, it stitches a live last price into `close` while the day's
+   aggregated `high`/`low` still lag — observed on BTC-USD, close 79,769.17
+   against a high of 79,643.41.
+
+   **Just after the close**, the session clock says the session is over while the
+   vendor has not finalised the bar. Observed on ^NSEI 14 minutes after the
+   2026-08-25 close: O 24175.75 / H 24334.55 / L 24115.45 / C 24334.55 with
+   **volume 0**, against 236,300 and 259,300 on the two preceding sessions —
+   the close was simply the live last price. ^BSESN at the same moment reported
+   a close *above* its high.
+
+   A bar dated today is therefore treated as complete only when the session
+   clock has passed **and** the bar is internally coherent **and** it carries
+   volume (when that instrument reports volume at all). Otherwise the previous
+   settled session is used: stale but correct, rather than fresh and wrong.
 
 5. **Cross-instrument comparison can mix dates.** Markets run on different
    clocks, so at a given moment NIFTY's next CPR may be tomorrow's while COMEX's
