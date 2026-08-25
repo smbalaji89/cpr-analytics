@@ -1,4 +1,5 @@
 import { addDays, type ISODate } from "@/lib/utils/date";
+import { readEnvInt } from "@/lib/utils/env";
 
 /**
  * Retention window (PRD §21, §6, §30).
@@ -11,10 +12,7 @@ import { addDays, type ISODate } from "@/lib/utils/date";
 export const DEFAULT_RETENTION_DAYS = 90;
 
 export function retentionDays(): number {
-  const raw = Number(process.env.DATA_RETENTION_DAYS);
-  return Number.isFinite(raw) && raw > 0
-    ? Math.floor(raw)
-    : DEFAULT_RETENTION_DAYS;
+  return readEnvInt("DATA_RETENTION_DAYS", DEFAULT_RETENTION_DAYS);
 }
 
 /**

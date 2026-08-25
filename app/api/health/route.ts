@@ -4,6 +4,7 @@ import { countRows } from "@/lib/db/repository";
 import { DEFAULT_INSTRUMENT_SYMBOL, requireInstrument } from "@/lib/instruments";
 import { getCalendar, getMarketDataProvider } from "@/lib/market-data";
 import { addDays } from "@/lib/utils/date";
+import { readEnv } from "@/lib/utils/env";
 
 export const dynamic = "force-dynamic";
 
@@ -23,11 +24,17 @@ export async function GET() {
 
   const config = {
     DATABASE_URL: describeUrl(process.env.DATABASE_URL),
-    CRON_SECRET: process.env.CRON_SECRET?.trim()
-      ? `set (${process.env.CRON_SECRET.trim().length} chars)`
-      : "NOT SET",
-    MARKET_DATA_PROVIDER: process.env.MARKET_DATA_PROVIDER ?? "(unset → yahoo)",
-    DATA_RETENTION_DAYS: process.env.DATA_RETENTION_DAYS ?? "(unset → 90)",
+    CRON_SECRET: readEnv("CRON_SECRET")
+      ? `set (${readEnv("CRON_SECRET")!.length} chars)`
+      : describeBlank("CRON_SECRET", "NOT SET — cron and admin sync disabled"),
+    MARKET_DATA_PROVIDER: describeBlank(
+      "MARKET_DATA_PROVIDER",
+      "unset → defaults to yahoo",
+    ),
+    DATA_RETENTION_DAYS: describeBlank(
+      "DATA_RETENTION_DAYS",
+      "unset → defaults to 90",
+    ),
     NODE_ENV: process.env.NODE_ENV,
     VERCEL_REGION: process.env.VERCEL_REGION ?? "(not on Vercel)",
   };
@@ -84,6 +91,20 @@ export async function GET() {
     },
     { cache: CACHE.none },
   );
+}
+
+/**
+ * Distinguish "declared but blank" from "not declared".
+ *
+ * They behave identically now, but a blank value means someone added the key
+ * and forgot the value — worth surfacing so it can be tidied up.
+ */
+function describeBlank(name: string, whenUnset: string): string {
+  const raw = process.env[name];
+  if (raw === undefined) return `(${whenUnset})`;
+  const trimmed = raw.trim();
+  if (!trimmed) return `(declared but BLANK → treated as unset; ${whenUnset})`;
+  return trimmed;
 }
 
 /** Shape of a connection string, with every credential removed. */

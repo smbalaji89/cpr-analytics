@@ -17,6 +17,7 @@ import {
 import { getMarketDataProvider } from "@/lib/market-data";
 import { getDatabaseStatus } from "@/lib/services/db-status";
 import { retentionDays } from "@/lib/services/retention";
+import { hasEnv } from "@/lib/utils/env";
 
 export const metadata: Metadata = { title: "Settings" };
 export const dynamic = "force-dynamic";
@@ -75,7 +76,7 @@ export default async function SettingsPage() {
     providerError = error instanceof Error ? error.message : String(error);
   }
 
-  const cronConfigured = Boolean(process.env.CRON_SECRET?.trim());
+  const cronConfigured = hasEnv("CRON_SECRET");
 
   return (
     <div className="min-h-dvh bg-surface-muted">

@@ -1,6 +1,7 @@
 import type { PgDatabase, PgQueryResultHKT } from "drizzle-orm/pg-core";
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
+import { readEnv } from "@/lib/utils/env";
 import * as schema from "./schema";
 
 /**
@@ -32,7 +33,7 @@ let db: Database | null = null;
 let testDb: Database | null = null;
 
 export function isDatabaseConfigured(): boolean {
-  return Boolean(testDb) || Boolean(process.env.DATABASE_URL?.trim());
+  return Boolean(testDb) || readEnv("DATABASE_URL") !== undefined;
 }
 
 /**
@@ -58,7 +59,7 @@ export function getDb(): Database {
   if (testDb) return testDb;
   if (db) return db;
 
-  const url = process.env.DATABASE_URL?.trim();
+  const url = readEnv("DATABASE_URL");
   if (!url) {
     throw new Error(
       "DATABASE_URL is not set. Guard database access with isDatabaseConfigured().",

@@ -1,4 +1,5 @@
 import { timingSafeEqual } from "node:crypto";
+import { readEnv } from "@/lib/utils/env";
 
 /**
  * Cron / admin endpoint protection (PRD §21, §32).
@@ -27,7 +28,7 @@ export type AuthResult =
  * there is exactly one place that decides what counts as authorised.
  */
 export function authorizeSecret(provided: string | null): AuthResult {
-  const secret = process.env.CRON_SECRET?.trim();
+  const secret = readEnv("CRON_SECRET");
   if (!secret) {
     return {
       authorized: false,
@@ -49,7 +50,7 @@ export function authorizeSecret(provided: string | null): AuthResult {
  *   x-cron-secret: <secret>          (convenient for manual curl)
  */
 export function authorizeCronRequest(request: Request): AuthResult {
-  const secret = process.env.CRON_SECRET?.trim();
+  const secret = readEnv("CRON_SECRET");
   if (!secret) {
     return {
       authorized: false,

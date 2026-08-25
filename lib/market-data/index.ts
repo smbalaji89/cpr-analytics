@@ -1,3 +1,4 @@
+import { readEnvBool, readEnvOr } from "@/lib/utils/env";
 import { MockMarketDataProvider } from "./providers/mock";
 import { YahooFinanceProvider } from "./providers/yahoo";
 import type { MarketDataProvider } from "./provider";
@@ -22,12 +23,12 @@ export interface ProviderFactoryOptions {
 export function getMarketDataProvider(
   options: ProviderFactoryOptions = {},
 ): MarketDataProvider {
-  const requested = (process.env.MARKET_DATA_PROVIDER ?? "yahoo").toLowerCase();
+  // Blank counts as unset — see lib/utils/env.ts for why that matters.
+  const requested = readEnvOr("MARKET_DATA_PROVIDER", "yahoo").toLowerCase();
 
   switch (requested) {
     case "mock": {
-      const allowInProd =
-        process.env.ALLOW_MOCK_PROVIDER_IN_PRODUCTION === "true";
+      const allowInProd = readEnvBool("ALLOW_MOCK_PROVIDER_IN_PRODUCTION");
       if (process.env.NODE_ENV === "production" && !allowInProd) {
         throw new Error(
           "MARKET_DATA_PROVIDER=mock is not permitted in production. " +
