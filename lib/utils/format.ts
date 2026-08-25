@@ -50,12 +50,3 @@ export function formatWidth(value: number | null | undefined): string {
 export function formatCompact(value: number): string {
   return compactFormatter.format(value);
 }
-
-const CURRENCY_SYMBOLS: Record<string, string> = {
-  INR: "₹",
-  USD: "$",
-};
-
-export function currencySymbol(code: string): string {
-  return CURRENCY_SYMBOLS[code] ?? "";
-}

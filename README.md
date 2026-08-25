@@ -742,7 +742,7 @@ UI states that a projected date may land on an unlisted holiday.
 ## Testing
 
 ```bash
-npm test                        # 193 tests, hermetic and offline
+npm test                        # 219 tests, hermetic and offline
 npm run test:watch              # watch mode
 ```
 
@@ -767,6 +767,8 @@ set RUN_LIVE_TESTS=1 && npm test               :: cmd.exe
 | `tests/calendar.test.ts` | Weekends, holidays, Friday→Monday, per-market calendars, timezones |
 | `tests/api.test.ts` | Valid/invalid instrument, valid/invalid date, 90-day window, cron auth |
 | `tests/theme.test.ts` | `tokens.ts` and `globals.css` cannot drift apart |
+| `tests/env.test.ts` | Blank environment variables behave exactly like unset ones |
+| `tests/settings-actions.test.ts` | Admin actions always resolve, authorise correctly, never echo the secret |
 | `tests/contracts.test.ts` | Futures month-code generation, year rollover, liquidity ranking |
 | `tests/db-fallback.test.ts` | Database read path: sufficiency, merge, failure fallback, no mock persistence |
 | `tests/db-integration.test.ts` | **Real Postgres**: migrations, constraints, upsert idempotency, numeric round-trip, retention, reconciliation |
@@ -820,6 +822,18 @@ These are real and deliberate; none is silently papered over in the UI.
 6. **The in-process cache is per-instance.** Serverless instances do not share
    it. The durable layer is the database plus HTTP `Cache-Control`.
 
-7. **The UI has not been visually regression-tested.** Layout was verified
+7. **`npm audit` reports high-severity `sharp` advisories that are not
+   reachable here.** `sharp` arrives as an optional transitive dependency of
+   Next.js and is used only by `next/image`. This app renders **no** `<Image>`
+   components and processes no user-supplied images, so the vulnerable libvips
+   code path is never entered; on Vercel, image optimisation runs on Vercel's
+   own infrastructure rather than this install. `15.5.23` is already the latest
+   `15.5.x`, so the only upgrade path is Next 16, a major version — not worth
+   the breaking change to patch an unreachable path.
+
+   **This changes the moment you add `next/image`.** If you do, upgrade to
+   Next 16 first.
+
+8. **The UI has not been visually regression-tested.** Layout was verified
    structurally (server-rendered markup, responsive breakpoints, production
    build) but not by screenshot comparison across devices.

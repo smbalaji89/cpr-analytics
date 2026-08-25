@@ -76,13 +76,4 @@ export function getDb(): Database {
   return db;
 }
 
-/** Close the pool. Used by scripts; serverless functions should not call this. */
-export async function closeDb(): Promise<void> {
-  if (client) {
-    await client.end({ timeout: 5 });
-    client = null;
-    db = null;
-  }
-}
-
 export { schema };

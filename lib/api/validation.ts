@@ -112,10 +112,3 @@ export function formatZodError(error: z.ZodError): string {
     })
     .join("; ");
 }
-
-export function parseSearchParams<T extends z.ZodTypeAny>(
-  schema: T,
-  searchParams: URLSearchParams,
-): z.SafeParseReturnType<unknown, z.infer<T>> {
-  return schema.safeParse(Object.fromEntries(searchParams.entries()));
-}

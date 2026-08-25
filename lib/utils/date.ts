@@ -80,13 +80,6 @@ export function maxDate(a: ISODate, b: ISODate): ISODate {
   return a >= b ? a : b;
 }
 
-/** Inclusive list of every calendar date in a range. */
-export function eachDay(start: ISODate, end: ISODate): ISODate[] {
-  const out: ISODate[] = [];
-  for (let d = start; d <= end; d = addDays(d, 1)) out.push(d);
-  return out;
-}
-
 /** Unix seconds for midnight UTC of an ISO date. */
 export function isoToUnixSeconds(date: ISODate): number {
   return Math.floor(isoToUTC(date).getTime() / 1000);

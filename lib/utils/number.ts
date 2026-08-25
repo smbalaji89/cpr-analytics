@@ -22,7 +22,3 @@ export function roundTo(value: number, decimals: number): number {
 export const PRICE_DECIMALS = 2;
 /** Decimal places used for CPR width %, per PRD §10. */
 export const PERCENT_DECIMALS = 4;
-
-export function isFiniteNumber(value: unknown): value is number {
-  return typeof value === "number" && Number.isFinite(value);
-}
