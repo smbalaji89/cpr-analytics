@@ -217,17 +217,17 @@ export class KiteConnectProvider implements MarketDataProvider {
       if (!bar) continue;
 
       // Same settlement discipline as the Yahoo provider: a same-day candle is
-      // final only once the session has ended AND the candle is coherent AND it
-      // carries volume. Exchange data normally satisfies all three at the close,
-      // which is the whole reason for using this provider.
+      // final once the session has ended AND the candle is internally coherent.
+      // Volume is deliberately NOT part of the test — see the Yahoo provider for
+      // the measurement showing a zero-volume bar that an independent exchange
+      // source confirmed was correct.
       const complete =
         bar.date < todayTz
           ? true
           : bar.date === todayTz &&
             sessionOver &&
             bar.close >= bar.low &&
-            bar.close <= bar.high &&
-            (bar.volume ?? 0) > 0;
+            bar.close <= bar.high;
 
       bars.push({ ...bar, complete });
     }

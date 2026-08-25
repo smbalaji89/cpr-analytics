@@ -280,10 +280,16 @@ export class YahooFinanceProvider implements MarketDataProvider {
    * ^BSESN's bar for the same moment reported close 77,645.21 ABOVE its high of
    * 77,587.56, which is impossible.
    *
-   * Taking that bar as complete produced a CPR for the next session that would
-   * silently change once the vendor settled. So a just-closed bar must also be
-   * internally coherent, and must carry volume when that instrument reports
-   * volume at all.
+   * Cross-checking against NSE's own live snapshot settled which half of that
+   * mattered. For the same session, NSE reported ^NSEI O 24175.75 / H 24334.55 /
+   * L 24115.45 / last 24334.55 — IDENTICAL to Yahoo to the paisa. The index
+   * really did close at its high; the zero volume was Yahoo backfilling index
+   * volume late, not evidence of an unsettled bar.
+   *
+   * ^BSESN's close above its high, however, is impossible under any reading.
+   *
+   * So COHERENCE is the gate, and volume is not: requiring volume rejected data
+   * that an independent exchange source confirms is correct.
    */
   private parseBars(
     result: NonNullable<YahooChartResponse["chart"]["result"]>[number],
@@ -307,16 +313,6 @@ export class YahooFinanceProvider implements MarketDataProvider {
     const bars: SessionBar[] = [];
     const seen = new Set<ISODate>();
 
-    /*
-     * Does this instrument report volume at all?
-     *
-     * Derived from the data rather than assumed: requiring volume from a series
-     * that never carries it would mark every bar incomplete forever. Only when
-     * other bars DO carry volume is a zero on the just-closed bar meaningful.
-     */
-    const reportsVolume = (quote.volume ?? []).some(
-      (v) => typeof v === "number" && v > 0,
-    );
 
     for (let i = 0; i < timestamps.length; i++) {
       const open = quote.open?.[i];
@@ -347,14 +343,12 @@ export class YahooFinanceProvider implements MarketDataProvider {
       if (date < todayTz) {
         complete = true;
       } else if (date === todayTz && regularEndDate === todayTz && regularEnd) {
-        // The session clock has to have passed...
+        // The session clock has to have passed, and the bar has to be
+        // internally coherent — a live last price spliced into a bar the vendor
+        // has not finished aggregating routinely breaks the second condition.
         const sessionEnded = nowSeconds >= regularEnd;
-        // ...the bar has to be internally coherent (a live last price spliced
-        // into an unsettled bar routinely breaks this)...
         const coherent = close >= low && close <= high;
-        // ...and it has to carry volume, when this instrument reports volume.
-        const settled = !reportsVolume || (typeof volume === "number" && volume > 0);
-        complete = sessionEnded && coherent && settled;
+        complete = sessionEnded && coherent;
       } else {
         complete = false;
       }

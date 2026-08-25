@@ -5,14 +5,18 @@ import { YahooFinanceProvider } from "@/lib/market-data/providers/yahoo";
 /**
  * A just-closed bar must be proven SETTLED, not merely past its session clock.
  *
- * Regression suite for real data observed on ^NSEI 14 minutes after the
- * 2026-08-25 close: O 24175.75 / H 24334.55 / L 24115.45 / C 24334.55 with
- * volume 0, while the two preceding sessions carried 236,300 and 259,300. The
- * close was the live last price stitched into a bar the vendor had not
- * finalised. ^BSESN at the same moment reported a close ABOVE its high.
+ * Regression suite for real data observed after the 2026-08-25 NSE close.
  *
- * Treating those as complete produced a next-session CPR that would silently
- * change once the vendor settled — the exact failure PRD §23 exists to prevent.
+ * ^BSESN reported a close of 77,645.21 ABOVE its high of 77,587.56 — impossible
+ * under any reading, and the vendor was clearly mid-aggregation. Treating that
+ * as complete would produce a next-session CPR that silently changes.
+ *
+ * ^NSEI at the same moment looked equally suspicious — close exactly equal to
+ * high, volume 0 against 236,300 the previous session — but cross-checking
+ * against NSE's OWN live snapshot showed O/H/L/last identical to the paisa. The
+ * index really did close at its high; the zero volume was the vendor backfilling
+ * index volume late. So coherence is the gate and volume is not: testing volume
+ * rejected data an independent exchange source confirms is correct.
  */
 
 const IST = "Asia/Kolkata";
@@ -83,8 +87,9 @@ async function todayBar(body: unknown) {
 }
 
 describe("a just-closed bar", () => {
-  it("is INCOMPLETE when volume is zero and other bars report volume", async () => {
-    // The exact bar observed in production.
+  it("is COMPLETE when coherent, even with zero volume", async () => {
+    // The exact bar observed in production. NSE's own snapshot confirmed these
+    // figures to the paisa, so rejecting it would discard correct data.
     const bar = await todayBar(
       payload({
         open: 24175.75,
@@ -95,7 +100,7 @@ describe("a just-closed bar", () => {
       }),
     );
     expect(bar).toBeDefined();
-    expect(bar!.complete).toBe(false);
+    expect(bar!.complete).toBe(true);
   });
 
   it("is INCOMPLETE when the close sits outside the high/low band", async () => {

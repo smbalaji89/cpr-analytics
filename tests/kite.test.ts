@@ -191,14 +191,16 @@ describe("historical bars", () => {
     expect(bars.find((b) => b.date === "2026-08-25")!.complete).toBe(false);
   });
 
-  it("marks today's candle incomplete when it carries no volume", async () => {
+  it("accepts a coherent same-day candle even with zero volume", async () => {
+    // Volume is not a settlement signal — see the Yahoo provider for the
+    // measurement against NSE's own snapshot.
     const provider = providerWith(
       candles([
         ["2026-08-25T00:00:00+0530", 24175.75, 24334.55, 24115.45, 24334.55, 0],
       ]),
     );
     const bars = await provider.getHistoricalOHLC(request);
-    expect(bars[0].complete).toBe(false);
+    expect(bars[0].complete).toBe(true);
   });
 
   it("marks today's candle incomplete when the close sits outside high/low", async () => {
