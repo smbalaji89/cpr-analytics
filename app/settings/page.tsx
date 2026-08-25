@@ -239,9 +239,9 @@ export default async function SettingsPage() {
                       {PERCENT_BANDS.min}–{PERCENT_BANDS.narrowMax}% · Narrow
                     </li>
                     <li>
-                      {PERCENT_BANDS.narrowMax}–{PERCENT_BANDS.mixedMax}% · Mixed
+                      {PERCENT_BANDS.narrowMax}–{PERCENT_BANDS.widerMin}% · Mixed
                     </li>
-                    <li>≥ {PERCENT_BANDS.mixedMax}% · Wider</li>
+                    <li>≥ {PERCENT_BANDS.widerMin}% · Wider</li>
                     <li className="text-ink-muted">
                       below {PERCENT_BANDS.min}% · reported out of range
                     </li>

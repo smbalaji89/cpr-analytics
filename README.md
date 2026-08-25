@@ -591,16 +591,26 @@ Two independent methods run on every session and **both are always reported.**
 | Width (points) | | Width % | |
 | --- | --- | --- | --- |
 | 1 – 40 | Narrow | 0.01 – 0.25 % | Narrow |
-| 41 – 70 | Mixed | 0.26 – 0.49 % | Mixed |
+| 41 – 70 | Mixed | > 0.25 % and < 0.50 % | Mixed |
 | 71 – 200 | Wider | ≥ 0.50 % | Wider |
 | outside | out of range | < 0.01 % | out of range |
 
-The published tables are integer ranges, which leaves gaps (40.5 points, 0.255 %).
-Bands are implemented as continuous intervals closed at the upper edge, so
-nothing falls through a gap while every boundary in the spec still holds
-(40→Narrow, 41→Mixed, 70→Mixed, 71→Wider; 0.25→Narrow, 0.26→Mixed, 0.49→Mixed,
-0.50→Wider). Values are rounded to displayed precision *before* classifying, so a
-badge can never contradict the number beside it.
+The published tables leave gaps: the points bands are integers (40.5 is
+undefined) and the percentage bands jump from `0.26–0.49` to `≥ 0.50` (0.495 is
+undefined). Both are closed without moving a stated boundary:
+
+- **Points** bands are continuous, closed at the upper edge, so 40.5 → Mixed.
+- **Percentage** anchors WIDER to its stated **0.50 % floor**, so everything
+  above NARROW and below 0.50 % is Mixed. A width of **0.4914 % is Mixed, not
+  Wider** — it has not reached the threshold the specification names.
+
+Every published boundary still holds exactly: 40→Narrow, 41→Mixed, 70→Mixed,
+71→Wider; 0.25→Narrow, 0.26→Mixed, 0.49→Mixed, 0.50→Wider.
+
+Values are rounded to displayed precision *before* classifying, so a badge can
+never contradict the number beside it — and `0.1 + 0.4`, which is
+`0.5000000000000001` in IEEE-754, lands exactly on the floor rather than
+tipping over it.
 
 ### Which method sets the category
 

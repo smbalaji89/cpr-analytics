@@ -44,11 +44,22 @@ export const POINTS_BANDS = {
   widerMax: 200,
 } as const;
 
-/** Band edges for the PERCENTAGE method (PRD §11B). Same closed-upper-edge treatment. */
+/**
+ * Band edges for the PERCENTAGE method (PRD §11B).
+ *
+ * The published table reads 0.01–0.25 % narrow, 0.26–0.49 % mixed, ≥ 0.50 %
+ * wider — which leaves the interval between 0.49 and 0.50 undefined. WIDER is
+ * anchored to its stated floor of 0.50 %, so that interval belongs to MIXED:
+ * a width of 0.4914 % is not yet wide by the specification's own threshold.
+ *
+ * NARROW keeps its closed upper edge at 0.25 % so the published boundary cases
+ * (0.25 → narrow, 0.26 → mixed) still hold exactly.
+ */
 export const PERCENT_BANDS = {
   min: 0.01,
   narrowMax: 0.25,
-  mixedMax: 0.49,
+  /** WIDER starts here, inclusive. Anything below it and above NARROW is MIXED. */
+  widerMin: 0.5,
 } as const;
 
 /**
@@ -81,7 +92,7 @@ export function classifyByPercentage(widthPercent: number): Classification {
 
   if (p < PERCENT_BANDS.min) return "BELOW_RANGE";
   if (p <= PERCENT_BANDS.narrowMax) return "NARROW";
-  if (p <= PERCENT_BANDS.mixedMax) return "MIXED";
+  if (p < PERCENT_BANDS.widerMin) return "MIXED";
   return "WIDER";
 }
 

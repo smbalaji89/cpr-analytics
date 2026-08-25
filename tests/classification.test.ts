@@ -61,8 +61,19 @@ describe("classifyByPercentage — PRD §40 boundary table", () => {
   });
 
   it("leaves no gap between the published bands", () => {
+    // The table jumps from "0.26–0.49" to ">= 0.50", so 0.255 and 0.495 are
+    // undefined in the spec. NARROW keeps its closed edge at 0.25 and WIDER is
+    // anchored to its stated 0.50 floor, so both fall to MIXED.
     expect(classifyByPercentage(0.255)).toBe("MIXED");
-    expect(classifyByPercentage(0.495)).toBe("WIDER");
+    expect(classifyByPercentage(0.495)).toBe("MIXED");
+  });
+
+  it("requires the full 0.50% before calling a width WIDER", () => {
+    // Anchored to the specification's stated floor: 0.4999 is not yet wide.
+    expect(classifyByPercentage(0.4914)).toBe("MIXED");
+    expect(classifyByPercentage(0.4999)).toBe("MIXED");
+    expect(classifyByPercentage(0.5)).toBe("WIDER");
+    expect(classifyByPercentage(0.5001)).toBe("WIDER");
   });
 
   it("is not tripped up by binary floating point at a boundary", () => {
@@ -70,6 +81,9 @@ describe("classifyByPercentage — PRD §40 boundary table", () => {
     // 4dp precision before comparing keeps the badge consistent with the number.
     expect(classifyByPercentage(0.1 + 0.15)).toBe("NARROW");
     expect(classifyByPercentage(0.48 + 0.01)).toBe("MIXED");
+    // 0.1 + 0.4 === 0.5000000000000001; rounding to 4dp keeps it exactly at
+    // the WIDER floor rather than tipping it over by a rounding artefact.
+    expect(classifyByPercentage(0.1 + 0.4)).toBe("WIDER");
   });
 });
 
@@ -189,6 +203,14 @@ describe("classify — real instrument scenarios", () => {
     expect(result.pointsClassification).toBe("BELOW_RANGE");
     expect(result.overallClassification).toBe("MIXED");
     expect(result.basis).toBe("PRIMARY");
+  });
+
+  it("a real 0.4914% width is MIXED, not WIDER", () => {
+    // Silver's live session. Under the previous `> 0.49` rule this was WIDER,
+    // which contradicted the specification's ">= 0.50" floor.
+    const result = classify(0.34, 0.4914, "PERCENTAGE");
+    expect(result.percentageClassification).toBe("MIXED");
+    expect(result.overallClassification).toBe("MIXED");
   });
 
   it("BTC stays classified despite exceeding the points scale", () => {
