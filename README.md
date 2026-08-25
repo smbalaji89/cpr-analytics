@@ -3,7 +3,8 @@
 Central Pivot Range analytics for Indian indices, commodities and crypto. Shows
 the next trading day's CPR by default, the last 10 sessions, any date within a
 90-day window, width in points and percent, dual classification, R1–R5 / S1–S5,
-and cross-instrument comparison.
+and cross-instrument comparison. Nine instruments across Indian indices,
+global (USD) and Indian (INR) commodities, and crypto.
 
 Next.js 15 (App Router) · TypeScript · Tailwind CSS v4 · Recharts · Drizzle ORM ·
 Postgres (Supabase) · Vitest. Deploys to Vercel.
@@ -20,6 +21,7 @@ Postgres (Supabase) · Vitest. Deploys to Vercel.
 6. [Running locally](#running-locally)
 7. [Data synchronisation](#data-synchronisation)
 8. [Storage and caching](#storage-and-caching)
+9. [Deploying](DEPLOYMENT.md)
 9. [Vercel deployment](#vercel-deployment)
 10. [Cron configuration](#cron-configuration)
 11. [API reference](#api-reference)
@@ -88,10 +90,37 @@ The app depends on the `MarketDataProvider` interface
 | NIFTY 50 | `^NSEI` | NSE | INR |
 | BANK NIFTY | `^NSEBANK` | NSE | INR |
 | SENSEX | `^BSESN` | BSE | INR |
+| Gold (India) | `GOLDBEES.NS` | NSE | INR |
+| Silver (India) | `SILVERBEES.NS` | NSE | INR |
 | Gold | auto-resolved `GC<month><yy>.CMX` | COMEX | USD |
 | Silver | auto-resolved `SI<month><yy>.CMX` | COMEX | USD |
 | Crude Oil | auto-resolved `CL<month><yy>.NYM` | NYMEX | USD |
 | Bitcoin | `BTC-USD` | 24/7 | USD |
+
+#### Indian commodities are ETFs, not MCX futures
+
+**Yahoo has no MCX coverage** — every MCX symbol format returns 404, verified
+against `GOLD.MCX`, `GOLDM.MCX`, `SILVER.MCX`, `CRUDEOIL.MCX`, `MCXGOLD.NS` and
+`CRUDEOIL.NS`.
+
+The "Commodities · India (INR)" group therefore uses the most liquid NSE-listed
+INR commodity ETFs (20M+ shares/day). They are real, exchange-traded instruments
+on the NSE calendar tracking domestic prices including import duty and GST — but
+they are **not** the MCX futures contracts:
+
+| | MCX GOLD futures | GOLDBEES.NS |
+| --- | --- | --- |
+| Price scale | ~₹1,00,000 per 10g | ~₹133 per unit |
+| CPR width % | comparable | comparable |
+| BC / Pivot / TC | tradeable on MCX | **not** MCX levels |
+
+Every affected card states this. MCX levels were **not** synthesised from
+COMEX × USDINR: that ignores import duty (~6%), GST (3%) and local basis, so the
+numbers would look plausible and be wrong. Real MCX data needs an authorised
+feed (Global Datafeeds, TrueData, Zerodha Kite Connect) behind a new
+`MarketDataProvider` — the CPR engine needs no changes for that.
+
+No INR crude instrument exists on NSE, so Crude Oil remains NYMEX-only.
 
 It is an undocumented public endpoint with no SLA. For production traffic,
 substitute a commercial feed — see [Swapping the provider](#swapping-the-provider).
@@ -702,11 +731,11 @@ UI states that a projected date may land on an unlisted holiday.
 ## Testing
 
 ```bash
-npm test                        # 191 tests, hermetic and offline
+npm test                        # 193 tests, hermetic and offline
 npm run test:watch              # watch mode
 ```
 
-The 17 live tests that hit the real provider are skipped by default. Opt in with
+The 21 live tests that hit the real provider are skipped by default. Opt in with
 the `RUN_LIVE_TESTS` environment variable — the syntax differs per shell:
 
 ```bash
