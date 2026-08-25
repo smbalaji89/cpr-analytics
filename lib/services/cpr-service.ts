@@ -256,9 +256,19 @@ function persistInBackground(
     return;
   }
 
+  // The series is fetched with an extra lookback buffer so the oldest requested
+  // session still has a preceding bar to derive from. Those buffer rows are
+  // OUTSIDE the retention window and must not be stored — PRD §21 requires the
+  // table to hold only the retention period, and the sync job already excludes
+  // them. Without this filter write-through quietly re-introduces rows that the
+  // next cleanup would delete.
+  const cutoff = retentionCutoff(todayFor(instrument));
+  const retained = records.filter((record) => record.tradingDate >= cutoff);
+  if (retained.length === 0) return;
+
   const write = async () => {
     try {
-      const rows = records.map((record) =>
+      const rows = retained.map((record) =>
         resultToInsert(
           {
             ...record,

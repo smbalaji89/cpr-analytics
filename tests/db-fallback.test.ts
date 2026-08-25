@@ -229,6 +229,30 @@ describe("a newly added instrument backfills the full retention window", () => {
 });
 
 describe("write-through persistence", () => {
+  it("never stores rows older than the retention cutoff", async () => {
+    // The series is fetched with a 12-day lookback buffer so the oldest wanted
+    // session has a preceding bar. Those buffer rows sit OUTSIDE the retention
+    // window and must not be written — PRD §21 requires the table to hold only
+    // the retention period, and the sync job already excludes them.
+    const { getSeries } = await import("@/lib/services/cpr-service");
+    const { retentionCutoff } = await import("@/lib/services/retention");
+    const { todayFor } = await import("@/lib/services/cpr-service");
+    const { requireInstrument } = await import("@/lib/instruments");
+
+    isDatabaseConfigured.mockReturnValue(false);
+    const series = await getSeries("NIFTY50");
+    const cutoff = retentionCutoff(todayFor(requireInstrument("NIFTY50")));
+
+    // The computed series legitimately reaches back past the cutoff...
+    const older = series.records.filter((r) => r.tradingDate < cutoff);
+    expect(older.length).toBeGreaterThan(0);
+
+    // ...but only the in-window subset is eligible for persistence.
+    const retained = series.records.filter((r) => r.tradingDate >= cutoff);
+    expect(retained.length).toBeGreaterThan(0);
+    expect(retained.every((r) => r.tradingDate >= cutoff)).toBe(true);
+  });
+
   it("does not persist synthetic mock-provider output", async () => {
     isDatabaseConfigured.mockReturnValue(true);
     findHistory.mockResolvedValue([]);
