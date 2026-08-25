@@ -1,7 +1,8 @@
 "use client";
 
 import { AlertTriangle, CheckCircle2, Database, RefreshCw, Trash2 } from "lucide-react";
-import { useActionState } from "react";
+import { useRouter } from "next/navigation";
+import { useActionState, useEffect } from "react";
 import {
   cleanupNowAction,
   syncNowAction,
@@ -54,6 +55,7 @@ function Result({ state }: { state: ActionState | null }) {
 }
 
 export function AdminPanel({ enabled }: { enabled: boolean }) {
+  const router = useRouter();
   const [syncState, syncFormAction, syncPending] = useActionState<
     ActionState | null,
     FormData
@@ -62,6 +64,13 @@ export function AdminPanel({ enabled }: { enabled: boolean }) {
     ActionState | null,
     FormData
   >(cleanupNowAction, null);
+
+  // Pull fresh stored-history figures once an action reports success. Doing
+  // this here rather than via revalidatePath keeps the button's pending state
+  // tied to the action alone, so a slow page re-render cannot strand it.
+  useEffect(() => {
+    if (syncState?.ok || cleanupState?.ok) router.refresh();
+  }, [syncState, cleanupState, router]);
 
   if (!enabled) {
     return (

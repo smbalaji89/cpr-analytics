@@ -1,6 +1,5 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { authorizeSecret } from "@/lib/api/auth";
 import { INSTRUMENTS } from "@/lib/instruments";
 import { runCleanup, runSync } from "@/lib/services/sync";
@@ -14,7 +13,38 @@ import { runCleanup, runSync } from "@/lib/services/sync";
  * and hammer the database.
  *
  * The secret is never sent back to the client and never stored.
+ *
+ * ── Why these do not call revalidatePath ───────────────────────────────────
+ * `revalidatePath` makes Next re-render the settings page as part of the
+ * action's response, and that page queries the database itself. A slow or
+ * failing re-render then strands the submit button in its pending state even
+ * though the work already succeeded — the user sees "Cleaning…" forever with no
+ * way to tell whether anything happened.
+ *
+ * Refreshing is the client's job instead: the action returns a result, and the
+ * component calls `router.refresh()` once it has one. Whether the work
+ * succeeded is then independent of whether the page re-rendered.
  */
+
+/** Never let a stuck dependency hold the UI in a pending state. */
+const ACTION_TIMEOUT_MS = 45_000;
+
+async function withTimeout<T>(work: Promise<T>, label: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      work,
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(
+          () => reject(new Error(`${label} timed out after ${ACTION_TIMEOUT_MS / 1000}s`)),
+          ACTION_TIMEOUT_MS,
+        );
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
 
 export interface ActionState {
   ok: boolean;
@@ -41,7 +71,7 @@ export async function syncNowAction(
       : INSTRUMENTS.map((i) => i.symbol);
 
   try {
-    const result = await runSync({ symbols });
+    const result = await withTimeout(runSync({ symbols }), "Sync");
     const failed = result.instruments.filter((i) => !i.ok);
 
     const detail = result.instruments.map((i) =>
@@ -49,9 +79,6 @@ export async function syncNowAction(
         ? `${i.symbol}: ${i.written} row(s)${i.providerSymbol ? ` from ${i.providerSymbol}` : ""}${i.reconciledAway ? `, ${i.reconciledAway} stale removed` : ""}${i.skipped.length ? `, ${i.skipped.length} session(s) skipped` : ""}`
         : `${i.symbol}: FAILED — ${i.error}`,
     );
-
-    revalidatePath("/settings");
-    revalidatePath("/");
 
     return {
       ok: failed.length === 0,
@@ -79,8 +106,7 @@ export async function cleanupNowAction(
   if (!auth.authorized) return unauthorized(auth.message);
 
   try {
-    const deleted = await runCleanup();
-    revalidatePath("/settings");
+    const deleted = await withTimeout(runCleanup(), "Cleanup");
     return {
       ok: true,
       message: `Retention cleanup complete — ${deleted} row(s) removed.`,
