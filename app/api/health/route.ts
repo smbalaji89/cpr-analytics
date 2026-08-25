@@ -35,6 +35,10 @@ export async function GET() {
       "DATA_RETENTION_DAYS",
       "unset → defaults to 90",
     ),
+    KITE_API_KEY: readEnv("KITE_API_KEY") ? "set" : "not set",
+    KITE_ACCESS_TOKEN: readEnv("KITE_ACCESS_TOKEN")
+      ? "set (expires 6 AM IST daily)"
+      : "not set",
     NODE_ENV: process.env.NODE_ENV,
     VERCEL_REGION: process.env.VERCEL_REGION ?? "(not on Vercel)",
   };
@@ -62,7 +66,7 @@ export async function GET() {
    * but under a misspelled key, so the app never reads it.
    */
   const relatedKeys = Object.keys(process.env)
-    .filter((k) => /CRON|SECRET|DATABASE|MARKET|RETENTION|SUPABASE/i.test(k))
+    .filter((k) => /CRON|SECRET|DATABASE|MARKET|RETENTION|SUPABASE|KITE/i.test(k))
     .sort();
 
   // ── Market data ──────────────────────────────────────────────────────────

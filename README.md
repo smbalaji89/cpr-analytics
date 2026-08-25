@@ -61,7 +61,9 @@ variable is prefixed `NEXT_PUBLIC_`, and every one is read only in server code.
 | --- | --- | --- |
 | `DATABASE_URL` | No | Postgres connection string (Supabase **transaction pooler**, port 6543). Omit to run in live-compute mode. |
 | `DIRECT_DATABASE_URL` | For migrations | Supabase **direct** string (port 5432). Used by `db:migrate` only. |
-| `MARKET_DATA_PROVIDER` | No | `yahoo` (default) or `mock`. |
+| `MARKET_DATA_PROVIDER` | No | `yahoo` (default), `kite`, or `mock`. |
+| `KITE_API_KEY` | For `kite` | Zerodha Kite Connect API key. |
+| `KITE_ACCESS_TOKEN` | For `kite` | Expires 6 AM IST daily; needs manual renewal. |
 | `MARKET_DATA_API_KEY` | No | Reserved for providers that authenticate. Yahoo needs none. |
 | `ALLOW_MOCK_PROVIDER_IN_PRODUCTION` | No | Escape hatch; see below. |
 | `CRON_SECRET` | For cron | Protects the sync/cleanup/admin endpoints. |
@@ -161,6 +163,79 @@ different prices and a figure must be traceable to the exact series it came from
 If every candidate fails the provider raises an error rather than falling back to
 the `=F` alias: showing a range understated by up to 58 % is worse than showing
 "temporarily unavailable".
+
+### `kite` (Zerodha Kite Connect — real-time and MCX)
+
+Exchange-sourced Indian data. Fixes the two things Yahoo structurally cannot:
+
+**Settlement latency.** Yahoo publishes a settled daily bar hours after the
+close — measured 32 minutes after the 2026-08-25 NSE close, its bar still
+carried volume 0 and a close exactly equal to the high, so the next session's
+CPR could not be computed. Kite serves the exchange's own candles, so a session
+is final when the session is.
+
+**MCX.** Yahoo has no MCX coverage — every MCX symbol returns 404. Kite reaches
+MCX futures directly, so Gold/Silver/Crude can be the contracts Indian traders
+actually trade rather than COMEX proxies in USD.
+
+#### The catch, before you commit to it
+
+**The access token expires at 6 AM IST every day** and can only be regenerated
+through an interactive browser login. This is a regulatory requirement, not an
+API limitation — no server-side code can refresh it unattended. A deployment on
+`kite` therefore needs a **daily manual step**, or it goes dark each morning
+until someone supplies a new token.
+
+The provider fails loudly rather than silently when that happens: a `403`
+produces "Kite access token is invalid or has expired…", and the app falls back
+to its "market data temporarily unavailable" state rather than showing stale
+figures.
+
+The historical data API is also a **paid add-on** on top of the Kite Connect
+subscription.
+
+#### Setup
+
+1. Create an app at [developers.kite.trade](https://developers.kite.trade) and
+   subscribe to the **Historical Data** add-on.
+2. Complete the login flow to obtain an `access_token`
+   ([docs](https://kite.trade/docs/connect/v3/user/)).
+3. Set the variables and switch the provider:
+
+```bash
+MARKET_DATA_PROVIDER=kite
+KITE_API_KEY=your_api_key
+KITE_ACCESS_TOKEN=token_from_todays_login
+```
+
+4. Verify with `/api/health` — `provider.id` should read `kite` and
+   `provider.ok` be `true`.
+
+#### Adding MCX instruments
+
+Once Kite is working, MCX contracts are a registry entry with a `kite` symbol:
+
+```ts
+{
+  symbol: "GOLD_MCX",
+  name: "Gold (MCX)",
+  category: "COMMODITIES_IN",
+  market: "MCX",
+  currency: "INR",
+  providerSymbols: { kite: "MCX:GOLDM26DECFUT" },
+  classificationMethod: "PERCENTAGE",
+}
+```
+
+MCX futures trading symbols embed the expiry, so they roll each contract cycle.
+When a symbol stops resolving the provider lists the closest live matches from
+the instruments dump, which tells you the new one.
+
+> The `kite` symbols shipped for the existing NSE/BSE instruments
+> (`NSE:NIFTY 50`, `NSE:NIFTY BANK`, `BSE:SENSEX`, `NSE:GOLDBEES`,
+> `NSE:SILVERBEES`) follow Kite's documented naming but have **not** been
+> verified against a live instruments dump — that needs credentials. If one does
+> not resolve, the error names the closest matches.
 
 ### `mock` (development only)
 
@@ -742,7 +817,7 @@ UI states that a projected date may land on an unlisted holiday.
 ## Testing
 
 ```bash
-npm test                        # 224 tests, hermetic and offline
+npm test                        # 242 tests, hermetic and offline
 npm run test:watch              # watch mode
 ```
 
@@ -770,6 +845,7 @@ set RUN_LIVE_TESTS=1 && npm test               :: cmd.exe
 | `tests/env.test.ts` | Blank environment variables behave exactly like unset ones |
 | `tests/settings-actions.test.ts` | Admin actions always resolve, authorise correctly, never echo the secret |
 | `tests/settlement.test.ts` | A just-closed bar must be proven settled, not merely past its session clock |
+| `tests/kite.test.ts` | Kite candle parsing, instrument lookup, session-end detection, expired-token handling |
 | `tests/contracts.test.ts` | Futures month-code generation, year rollover, liquidity ranking |
 | `tests/db-fallback.test.ts` | Database read path: sufficiency, merge, failure fallback, no mock persistence |
 | `tests/db-integration.test.ts` | **Real Postgres**: migrations, constraints, upsert idempotency, numeric round-trip, retention, reconciliation |

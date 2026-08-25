@@ -20,7 +20,7 @@ import {
  * omit a BTC CPR on a Sunday.
  */
 
-export type MarketId = "NSE" | "BSE" | "COMEX" | "NYMEX" | "CRYPTO";
+export type MarketId = "NSE" | "BSE" | "MCX" | "COMEX" | "NYMEX" | "CRYPTO";
 
 /**
  * How trustworthy the forward-projected holiday list is.
@@ -43,6 +43,17 @@ export interface MarketDefinition {
   tradesWeekends: boolean;
   holidayRule: ((year: number) => ISODate[]) | null;
   holidayCoverage: HolidayCoverage;
+  /**
+   * Regular session close, `HH:MM` in the market's own timezone.
+   *
+   * Only needed by providers that do not return session metadata of their own.
+   * Yahoo supplies `currentTradingPeriod`, so it ignores this; Kite's historical
+   * API returns bare candles, so it needs to be told when a session has ended
+   * before it can judge a same-day candle complete.
+   *
+   * `null` for markets that never close.
+   */
+  sessionClose: string | null;
 }
 
 export const MARKETS: Record<MarketId, MarketDefinition> = {
@@ -54,6 +65,7 @@ export const MARKETS: Record<MarketId, MarketDefinition> = {
     holidayRule: indianRuleHolidays,
     // Festival holidays follow lunar calendars and are not rule-derivable.
     holidayCoverage: "PARTIAL",
+    sessionClose: "15:30",
   },
   BSE: {
     id: "BSE",
@@ -62,6 +74,7 @@ export const MARKETS: Record<MarketId, MarketDefinition> = {
     tradesWeekends: false,
     holidayRule: indianRuleHolidays,
     holidayCoverage: "PARTIAL",
+    sessionClose: "15:30",
   },
   COMEX: {
     id: "COMEX",
@@ -70,6 +83,7 @@ export const MARKETS: Record<MarketId, MarketDefinition> = {
     tradesWeekends: false,
     holidayRule: usRuleHolidays,
     holidayCoverage: "COMPLETE",
+    sessionClose: "17:00",
   },
   NYMEX: {
     id: "NYMEX",
@@ -78,6 +92,17 @@ export const MARKETS: Record<MarketId, MarketDefinition> = {
     tradesWeekends: false,
     holidayRule: usRuleHolidays,
     holidayCoverage: "COMPLETE",
+    sessionClose: "17:00",
+  },
+  MCX: {
+    id: "MCX",
+    label: "MCX (Multi Commodity Exchange of India)",
+    timeZone: "Asia/Kolkata",
+    tradesWeekends: false,
+    holidayRule: indianRuleHolidays,
+    holidayCoverage: "PARTIAL",
+    // MCX evening session runs to 23:30 IST (23:55 under US daylight saving).
+    sessionClose: "23:30",
   },
   CRYPTO: {
     id: "CRYPTO",
@@ -86,6 +111,7 @@ export const MARKETS: Record<MarketId, MarketDefinition> = {
     tradesWeekends: true,
     holidayRule: null,
     holidayCoverage: "COMPLETE",
+    sessionClose: null,
   },
 };
 
