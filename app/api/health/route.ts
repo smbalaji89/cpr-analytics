@@ -1,0 +1,101 @@
+import { apiSuccess, CACHE } from "@/lib/api/response";
+import { isDatabaseConfigured } from "@/lib/db/client";
+import { countRows } from "@/lib/db/repository";
+import { DEFAULT_INSTRUMENT_SYMBOL, requireInstrument } from "@/lib/instruments";
+import { getCalendar, getMarketDataProvider } from "@/lib/market-data";
+import { addDays } from "@/lib/utils/date";
+
+export const dynamic = "force-dynamic";
+
+/**
+ * GET /api/health — deployment diagnostics.
+ *
+ * Answers "which dependency is broken?" from a browser, without shell access to
+ * the platform logs. Production Server Component errors are deliberately opaque
+ * (only a digest reaches the client), so this endpoint exercises each dependency
+ * separately and reports the actual failure.
+ *
+ * Reports only presence and shape of configuration — never a value, so the
+ * response is safe to share.
+ */
+export async function GET() {
+  const started = Date.now();
+
+  const config = {
+    DATABASE_URL: describeUrl(process.env.DATABASE_URL),
+    CRON_SECRET: process.env.CRON_SECRET?.trim()
+      ? `set (${process.env.CRON_SECRET.trim().length} chars)`
+      : "NOT SET",
+    MARKET_DATA_PROVIDER: process.env.MARKET_DATA_PROVIDER ?? "(unset → yahoo)",
+    DATA_RETENTION_DAYS: process.env.DATA_RETENTION_DAYS ?? "(unset → 90)",
+    NODE_ENV: process.env.NODE_ENV,
+    VERCEL_REGION: process.env.VERCEL_REGION ?? "(not on Vercel)",
+  };
+
+  // ── Market data ──────────────────────────────────────────────────────────
+  const provider: Record<string, unknown> = {};
+  const providerStart = Date.now();
+  try {
+    const impl = getMarketDataProvider({ revalidateSeconds: 0 });
+    provider.id = impl.id;
+    provider.isMock = impl.isMock;
+
+    const instrument = requireInstrument(DEFAULT_INSTRUMENT_SYMBOL);
+    const today = getCalendar(instrument.market).today();
+    const bars = await impl.getHistoricalOHLC({
+      instrument,
+      start: addDays(today, -10),
+      end: today,
+    });
+    provider.ok = true;
+    provider.barsReturned = bars.length;
+    provider.latestBar = bars.at(-1)?.date ?? null;
+    provider.completeBars = bars.filter((b) => b.complete).length;
+  } catch (error) {
+    provider.ok = false;
+    provider.error = error instanceof Error ? error.message : String(error);
+    provider.errorName = error instanceof Error ? error.name : "Unknown";
+  }
+  provider.ms = Date.now() - providerStart;
+
+  // ── Database ─────────────────────────────────────────────────────────────
+  const database: Record<string, unknown> = {
+    configured: isDatabaseConfigured(),
+  };
+  if (isDatabaseConfigured()) {
+    const dbStart = Date.now();
+    try {
+      database.rows = await countRows();
+      database.ok = true;
+    } catch (error) {
+      database.ok = false;
+      database.error = error instanceof Error ? error.message : String(error);
+    }
+    database.ms = Date.now() - dbStart;
+  }
+
+  return apiSuccess(
+    {
+      healthy: provider.ok === true,
+      config,
+      provider,
+      database,
+      totalMs: Date.now() - started,
+    },
+    { cache: CACHE.none },
+  );
+}
+
+/** Shape of a connection string, with every credential removed. */
+function describeUrl(raw?: string): string {
+  const url = raw?.trim();
+  if (!url) return "NOT SET";
+  try {
+    const parsed = new URL(url);
+    const port = parsed.port || "(default)";
+    const mode = port === "6543" ? "transaction pooler" : port === "5432" ? "session/direct" : "unknown";
+    return `set — host ${parsed.hostname}, port ${port} (${mode})`;
+  } catch {
+    return "SET BUT UNPARSEABLE — check for stray quotes, spaces or a line break";
+  }
+}

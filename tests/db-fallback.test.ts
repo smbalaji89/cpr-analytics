@@ -228,6 +228,54 @@ describe("a newly added instrument backfills the full retention window", () => {
   });
 });
 
+describe("provider failure degrades instead of crashing the render", () => {
+  // Every page resolves a default date and stepper bounds FIRST, so an
+  // unguarded throw there kills the whole Server Component render and reaches
+  // the user as an opaque digest rather than PRD §27's message.
+  const broken = () => {
+    process.env.MARKET_DATA_PROVIDER = "definitely-not-a-provider";
+    isDatabaseConfigured.mockReturnValue(false);
+  };
+
+  it("getDefaultTradingDate returns null rather than throwing", async () => {
+    broken();
+    const { getDefaultTradingDate } = await import(
+      "@/lib/services/cpr-service"
+    );
+    await expect(getDefaultTradingDate("NIFTY50")).resolves.toBeNull();
+  });
+
+  it("getDateNavigation returns empty bounds rather than throwing", async () => {
+    broken();
+    const { getDateNavigation } = await import("@/lib/services/cpr-service");
+    const nav = await getDateNavigation("NIFTY50", "2026-08-25");
+    expect(nav.availableDates).toEqual([]);
+    expect(nav.defaultDate).toBeNull();
+  });
+
+  it("getHistory returns no records rather than throwing", async () => {
+    broken();
+    const result = await getHistory("NIFTY50", 10);
+    expect(result.records).toEqual([]);
+  });
+
+  it("getRangeSeries returns no records rather than throwing", async () => {
+    broken();
+    const result = await getRangeSeries("NIFTY50", "2026-08-01", "2026-08-25");
+    expect(result.records).toEqual([]);
+  });
+
+  it("getCPRForDate reports the PRD §27 message rather than throwing", async () => {
+    broken();
+    const { getCPRForDate } = await import("@/lib/services/cpr-service");
+    const { lookup } = await getCPRForDate("NIFTY50", "2026-08-25");
+    expect(lookup.available).toBe(false);
+    if (!lookup.available) {
+      expect(lookup.error.message).toContain("temporarily unavailable");
+    }
+  });
+});
+
 describe("write-through persistence", () => {
   it("never stores rows older than the retention cutoff", async () => {
     // The series is fetched with a 12-day lookback buffer so the oldest wanted

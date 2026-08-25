@@ -74,6 +74,31 @@ function contextFor(
   };
 }
 
+/**
+ * Build a `DataContext` without ever throwing.
+ *
+ * `getMarketDataProvider()` throws on invalid configuration, and several of
+ * these call sites sit INSIDE error handlers — so the handler itself would
+ * crash and take the whole Server Component render down with it, which is
+ * exactly the failure this is meant to report.
+ */
+function safeContextFor(
+  calendar: TradingCalendar,
+  fromDatabase: boolean,
+): DataContext {
+  try {
+    return contextFor(getMarketDataProvider(), calendar, fromDatabase);
+  } catch {
+    return {
+      provider: "unknown",
+      providerLabel: "Market data provider",
+      isMockData: false,
+      holidayCoverage: calendar.holidayCoverage,
+      fromDatabase,
+    };
+  }
+}
+
 function toRecord(
   result: CPRResult,
   instrument: Instrument,
@@ -297,6 +322,39 @@ function persistInBackground(
   }
 }
 
+/**
+ * `getSeries` that degrades instead of throwing.
+ *
+ * Every page begins by resolving a default date and the date-stepper bounds, so
+ * an unguarded provider failure there crashes the whole Server Component render
+ * before any of the guarded code runs — which in production surfaces only as an
+ * opaque digest. PRD §27 requires "market data temporarily unavailable"
+ * instead, so provider failures are converted into an empty series and the
+ * caller renders the unavailable state.
+ *
+ * The real error is logged so it remains diagnosable in the platform logs.
+ */
+async function getSeriesSafe(
+  symbol: string,
+  options: { fresh?: boolean; start?: ISODate; end?: ISODate } = {},
+): Promise<SeriesResult> {
+  try {
+    return await getSeries(symbol, options);
+  } catch (error) {
+    console.error(
+      `[cpr-service] provider failed for ${symbol}:`,
+      error instanceof Error ? error.message : error,
+    );
+    const instrument = requireInstrument(symbol);
+    const calendar = getCalendar(instrument.market);
+    return {
+      records: [],
+      unavailable: [],
+      context: safeContextFor(calendar, false),
+    };
+  }
+}
+
 /** Today's date in the instrument's own exchange timezone. */
 export function todayFor(instrument: Instrument): ISODate {
   return getCalendar(instrument.market).today();
@@ -329,7 +387,7 @@ export async function getSeries(
 export async function getDefaultTradingDate(
   symbol: string,
 ): Promise<ISODate | null> {
-  const series = await getSeries(symbol);
+  const series = await getSeriesSafe(symbol);
   const projected = series.records.find((r) => r.projected);
   return projected?.tradingDate ?? series.records[0]?.tradingDate ?? null;
 }
@@ -358,7 +416,7 @@ export async function getDateNavigation(
 ): Promise<DateNavigation> {
   const instrument = requireInstrument(symbol);
   const today = todayFor(instrument);
-  const series = await getSeries(symbol);
+  const series = await getSeriesSafe(symbol);
 
   // `records` is already newest-first.
   const availableDates = series.records.map((r) => r.tradingDate);
@@ -421,7 +479,7 @@ export async function getCPRForDate(
           suggestedDate: retentionCutoff(today),
         },
       },
-      context: contextFor(getMarketDataProvider(), calendar, false),
+      context: safeContextFor(calendar, false),
       today,
     };
   }
@@ -435,7 +493,7 @@ export async function getCPRForDate(
       if (hit) {
         return {
           lookup: { available: true, record: hit },
-          context: contextFor(getMarketDataProvider(), calendar, true),
+          context: safeContextFor(calendar, true),
           today,
         };
       }
@@ -514,7 +572,7 @@ export async function getCPRForDate(
               : "Market data temporarily unavailable. Please try again later.",
         },
       },
-      context: contextFor(getMarketDataProvider(), calendar, false),
+      context: safeContextFor(calendar, false),
       today,
     };
   }
@@ -587,7 +645,7 @@ export async function getHistory(
       if (stored.length >= days) {
         return {
           records: stored,
-          context: contextFor(getMarketDataProvider(), calendar, true),
+          context: safeContextFor(calendar, true),
           today,
           totalBeforeFilter: storedUnfiltered?.length ?? stored.length,
         };
@@ -599,7 +657,7 @@ export async function getHistory(
     }
   }
 
-  const series = await getSeries(symbol);
+  const series = await getSeriesSafe(symbol);
   const inWindow = series.records.filter((r) => r.tradingDate <= cutoff);
   const merged = mergeByTradingDate(stored, inWindow).filter(
     (r) => r.tradingDate <= cutoff,
@@ -657,7 +715,7 @@ export async function getRangeSeries(
       if (coverage >= expectedSessions && expectedSessions > 0) {
         return {
           records: stored,
-          context: contextFor(getMarketDataProvider(), calendar, true),
+          context: safeContextFor(calendar, true),
           today,
           totalBeforeFilter: coverage,
         };
@@ -669,7 +727,7 @@ export async function getRangeSeries(
     }
   }
 
-  const series = await getSeries(symbol, { start, end });
+  const series = await getSeriesSafe(symbol, { start, end });
   const inWindow = series.records.filter(
     (r) => r.tradingDate >= start && r.tradingDate <= end,
   );
@@ -729,7 +787,6 @@ export async function getComparison(
   context: DataContext;
   totalBeforeFilter: number;
 }> {
-  const provider = getMarketDataProvider();
 
   const dbRecords = new Map<string, CPRRecord>();
   if (isDatabaseConfigured()) {
@@ -782,7 +839,7 @@ export async function getComparison(
       // No CPR for the exact date. Fall back to this instrument's own most
       // recent session at or before it, disclosing the substitution.
       try {
-        const series = await getSeries(symbol);
+        const series = await getSeriesSafe(symbol);
         // `records` is sorted newest-first, so the first match is the nearest.
         const nearest = series.records.find(
           (r) => r.tradingDate <= tradingDate,
@@ -833,9 +890,10 @@ export async function getComparison(
   return {
     rows: filtered,
     totalBeforeFilter: rows.length,
-    context: contextFor(
-      provider,
-      getCalendar(requireInstrument(symbols[0] ?? "NIFTY50").market),
+    context: safeContextFor(
+      getCalendar(
+        requireInstrument(symbols[0] ?? DEFAULT_INSTRUMENT_SYMBOL).market,
+      ),
       false,
     ),
   };

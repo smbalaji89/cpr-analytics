@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="CPR Analytics">
+  <rect width="32" height="32" rx="7" fill="#7C3AED"/>
+  <!-- Central Pivot Range: the three CPR lines (BC / Pivot / TC). -->
+  <g stroke="#FFFFFF" stroke-linecap="round" opacity="0.45">
+    <line x1="7" y1="11" x2="25" y2="11" stroke-width="1.6"/>
+    <line x1="7" y1="21" x2="25" y2="21" stroke-width="1.6"/>
+  </g>
+  <line x1="6" y1="16" x2="26" y2="16" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round"/>
+  <!-- Price action crossing the range. -->
+  <path d="M8 24 L13 18 L17 20.5 L21.5 9.5 L24.5 14"
+        fill="none" stroke="#FFFFFF" stroke-width="2.4"
+        stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

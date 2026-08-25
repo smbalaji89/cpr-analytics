@@ -29,6 +29,19 @@ import { cacheGet, cacheSet } from "@/lib/services/cache";
 
 const BASE_URL = "https://query1.finance.yahoo.com/v8/finance/chart";
 
+/**
+ * Per-request timeout.
+ *
+ * Serverless functions are killed by the platform at their duration limit
+ * (10s on Vercel Hobby) and that kill CANNOT be caught — it surfaces as an
+ * opaque "Server Components render" error rather than the graceful
+ * "temporarily unavailable" state. Bounding each request keeps the worst case
+ * comfortably inside the limit so a slow vendor degrades instead of crashing.
+ */
+const REQUEST_TIMEOUT_MS = 6_000;
+/** Worst case must stay under the platform limit: 2 attempts + one backoff. */
+const DEFAULT_MAX_ATTEMPTS = 2;
+
 /** Listed contract months probed when resolving a futures front month. */
 const CONTRACT_CANDIDATES = 4;
 /** Sessions sampled when ranking contract liquidity. */
@@ -92,7 +105,7 @@ export class YahooFinanceProvider implements MarketDataProvider {
 
   constructor(options: YahooProviderOptions = {}) {
     this.revalidateSeconds = options.revalidateSeconds ?? 300;
-    this.maxAttempts = options.maxAttempts ?? 3;
+    this.maxAttempts = options.maxAttempts ?? DEFAULT_MAX_ATTEMPTS;
     this.fetchImpl = options.fetchImpl ?? fetch;
     this.now = options.now ?? (() => new Date());
   }
@@ -117,6 +130,7 @@ export class YahooFinanceProvider implements MarketDataProvider {
   private async probeLiquidity(symbol: string): Promise<number | null> {
     try {
       const params = new URLSearchParams({ interval: "1d", range: "1mo" });
+      // Single attempt: this is a ranking probe, not the data path.
       const result = await this.requestSymbol(symbol, params, 1);
       const quote = result?.[0]?.indicators?.quote?.[0];
       const volumes = (quote?.volume ?? [])
@@ -198,6 +212,7 @@ export class YahooFinanceProvider implements MarketDataProvider {
       try {
         const response = await this.fetchImpl(url, {
           headers: REQUEST_HEADERS,
+          signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
           next:
             this.revalidateSeconds > 0
               ? { revalidate: this.revalidateSeconds }
