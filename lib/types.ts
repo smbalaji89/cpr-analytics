@@ -80,7 +80,12 @@ export type CPRUnavailableReason =
   /** The provider itself errored or was unreachable. */
   | "PROVIDER_ERROR"
   /** Requested date is outside the retention window. */
-  | "OUT_OF_RANGE";
+  | "OUT_OF_RANGE"
+  /**
+   * The active provider cannot serve this instrument at all — not a transient
+   * failure. MCX contracts under Yahoo, for instance.
+   */
+  | "PROVIDER_LACKS_INSTRUMENT";
 
 export interface CPRUnavailable {
   reason: CPRUnavailableReason;

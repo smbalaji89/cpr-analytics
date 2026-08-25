@@ -30,6 +30,7 @@ import {
 import type {
   CPRLookup,
   CPRRecord,
+  CPRUnavailable,
   CPRUnavailableReason,
   DataContext,
 } from "@/lib/types";
@@ -355,6 +356,34 @@ async function getSeriesSafe(
   }
 }
 
+/**
+ * Why this instrument can never be served by the active provider, or null.
+ *
+ * Checked BEFORE any date resolution: with no usable provider there is no
+ * series, so the default date comes back null and the caller would otherwise
+ * fall through to a generic "try again later" — false for a permanent gap like
+ * MCX under Yahoo.
+ */
+export function unsupportedReason(symbol: string): CPRUnavailable | null {
+  const instrument = requireInstrument(symbol);
+  let provider: MarketDataProvider;
+  try {
+    provider = getMarketDataProvider();
+  } catch {
+    return null; // Provider misconfigured entirely — a different problem.
+  }
+  if (provider.supports(instrument)) return null;
+
+  return {
+    reason: "PROVIDER_LACKS_INSTRUMENT",
+    message:
+      `${instrument.name} is not available from ${provider.label}. ` +
+      (instrument.market === "MCX"
+        ? "MCX contracts require the Upstox provider — set MARKET_DATA_PROVIDER=upstox with an Analytics Token."
+        : "Configure a provider that covers this instrument."),
+  };
+}
+
 /** Today's date in the instrument's own exchange timezone. */
 export function todayFor(instrument: Instrument): ISODate {
   return getCalendar(instrument.market).today();
@@ -502,6 +531,15 @@ export async function getCPRForDate(
       // live computation and let the response say where the data came from.
       console.error("[cpr-service] database read failed, computing live", error);
     }
+  }
+
+  const unsupported = unsupportedReason(symbol);
+  if (unsupported) {
+    return {
+      lookup: { available: false, error: unsupported },
+      context: safeContextFor(calendar, false),
+      today,
+    };
   }
 
   try {

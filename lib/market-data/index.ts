@@ -1,6 +1,7 @@
 import { readEnvBool, readEnvOr } from "@/lib/utils/env";
 import { KiteConnectProvider } from "./providers/kite";
 import { MockMarketDataProvider } from "./providers/mock";
+import { UpstoxProvider } from "./providers/upstox";
 import { YahooFinanceProvider } from "./providers/yahoo";
 import type { MarketDataProvider } from "./provider";
 
@@ -40,6 +41,10 @@ export function getMarketDataProvider(
       return new MockMarketDataProvider();
     }
 
+    case "upstox":
+      // Analytics Token: free, one-year validity, read-only, MCX included.
+      return new UpstoxProvider();
+
     case "kite":
       // Throws with actionable guidance when credentials are absent or the
       // access token has expired, which it does every day at 6 AM IST.
@@ -52,7 +57,7 @@ export function getMarketDataProvider(
 
     default:
       throw new Error(
-        `Unknown MARKET_DATA_PROVIDER "${requested}". Supported values: yahoo, kite, mock.`,
+        `Unknown MARKET_DATA_PROVIDER "${requested}". Supported values: yahoo, upstox, kite, mock.`,
       );
   }
 }

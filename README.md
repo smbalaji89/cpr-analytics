@@ -61,7 +61,8 @@ variable is prefixed `NEXT_PUBLIC_`, and every one is read only in server code.
 | --- | --- | --- |
 | `DATABASE_URL` | No | Postgres connection string (Supabase **transaction pooler**, port 6543). Omit to run in live-compute mode. |
 | `DIRECT_DATABASE_URL` | For migrations | Supabase **direct** string (port 5432). Used by `db:migrate` only. |
-| `MARKET_DATA_PROVIDER` | No | `yahoo` (default), `kite`, or `mock`. |
+| `MARKET_DATA_PROVIDER` | No | `yahoo` (default), `upstox`, `kite`, or `mock`. |
+| `UPSTOX_ACCESS_TOKEN` | For `upstox` | Analytics Token — free, valid 1 year, read-only. |
 | `KITE_API_KEY` | For `kite` | Zerodha Kite Connect API key. |
 | `KITE_ACCESS_TOKEN` | For `kite` | Expires 6 AM IST daily; needs manual renewal. |
 | `MARKET_DATA_API_KEY` | No | Reserved for providers that authenticate. Yahoo needs none. |
@@ -164,7 +165,52 @@ If every candidate fails the provider raises an error rather than falling back t
 the `=F` alias: showing a range understated by up to 58 % is worse than showing
 "temporarily unavailable".
 
-### `kite` (Zerodha Kite Connect — real-time and MCX)
+### `upstox` (recommended for Indian instruments)
+
+Driven by an **Analytics Token**, which is the piece that makes this practical:
+
+| | Yahoo | Kite | **Upstox Analytics** |
+| --- | --- | --- | --- |
+| Token upkeep | none | **daily** manual login | **once a year** |
+| Cost | free | paid add-on | **free** |
+| MCX | **none — all symbols 404** | yes | **yes** |
+| Instrument list | n/a | needs auth | **public, no auth** |
+| Order risk if leaked | n/a | full trading scope | **read-only** |
+
+The Analytics Token is generated from the Developer Apps dashboard (Analytics
+tab) with no OAuth redirect, is valid for a year, and cannot place, modify or
+cancel orders. Market-data endpoints need no static IP, so it works from
+serverless. Only one token is active per account — generating a new one revokes
+the previous.
+
+#### Setup
+
+```bash
+MARKET_DATA_PROVIDER=upstox
+UPSTOX_ACCESS_TOKEN=your_analytics_token
+```
+
+Verify with `/api/health` — `provider.id` should read `upstox`.
+
+#### What it unlocks
+
+**MCX contracts in INR** — `GOLD_MCX`, `SILVER_MCX`, `CRUDEOIL_MCX`. These are
+the contracts Indian commodity traders actually trade, not COMEX proxies.
+Because Yahoo has no MCX coverage whatsoever, they report
+`PROVIDER_LACKS_INSTRUMENT` on the default provider with a message naming what
+to switch to — deliberately, since showing a COMEX proxy under an MCX name would
+be worse than showing nothing.
+
+**Contracts roll themselves.** MCX futures expire, so the provider resolves the
+nearest sufficiently-distant expiry from Upstox's public instrument master,
+skipping any contract within 3 days of expiry — liquidity has already moved on
+by then, and thin final sessions produce erratic ranges. No expiry is hardcoded.
+
+The instrument keys shipped for the NSE/BSE instruments (`NSE_INDEX|Nifty 50`,
+`NSE_INDEX|Nifty Bank`, `BSE_INDEX|SENSEX`, `NSE_EQ|INF204KB17I5`,
+`NSE_EQ|INF204KC1402`) were read from that public master rather than guessed.
+
+### `kite` (Zerodha Kite Connect — MCX, but daily token renewal)
 
 Exchange-sourced Indian data. Fixes the two things Yahoo structurally cannot:
 
@@ -817,7 +863,7 @@ UI states that a projected date may land on an unlisted holiday.
 ## Testing
 
 ```bash
-npm test                        # 242 tests, hermetic and offline
+npm test                        # 264 tests, hermetic and offline
 npm run test:watch              # watch mode
 ```
 
@@ -846,6 +892,7 @@ set RUN_LIVE_TESTS=1 && npm test               :: cmd.exe
 | `tests/settings-actions.test.ts` | Admin actions always resolve, authorise correctly, never echo the secret |
 | `tests/settlement.test.ts` | A just-closed bar must be proven settled, not merely past its session clock |
 | `tests/kite.test.ts` | Kite candle parsing, instrument lookup, session-end detection, expired-token handling |
+| `tests/upstox.test.ts` | Upstox candle parsing, instrument master decoding, futures roll selection, MCX wiring |
 | `tests/contracts.test.ts` | Futures month-code generation, year rollover, liquidity ranking |
 | `tests/db-fallback.test.ts` | Database read path: sufficiency, merge, failure fallback, no mock persistence |
 | `tests/db-integration.test.ts` | **Real Postgres**: migrations, constraints, upsert idempotency, numeric round-trip, retention, reconciliation |
@@ -862,10 +909,11 @@ NARROW.
 
 These are real and deliberate; none is silently papered over in the UI.
 
-1. **Commodities are USD futures, not MCX contracts.** Gold and Silver are COMEX
-   and Crude is NYMEX, quoted in USD. If you need the MCX INR contracts, a
-   different data provider is required — point thresholds are not comparable
-   between the two. Disclosed on every affected instrument.
+1. **MCX contracts need the Upstox provider.** Under the default `yahoo`
+   provider, Gold/Silver/Crude are COMEX and NYMEX futures in USD, and the
+   `*_MCX` instruments report `PROVIDER_LACKS_INSTRUMENT`. Switching to
+   `upstox` makes the real MCX contracts available in INR. Every affected
+   instrument says which it is.
 
 2. **Futures contracts roll, so history can change retroactively.** The provider
    queries whichever contract month is currently most liquid, and the whole

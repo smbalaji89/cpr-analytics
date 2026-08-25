@@ -4,6 +4,7 @@ import {
   getCPRForDate,
   getDefaultTradingDate,
   horizonFor,
+  unsupportedReason,
 } from "@/lib/services/cpr-service";
 import { retentionCutoff, retentionDays } from "@/lib/services/retention";
 
@@ -32,6 +33,20 @@ export async function GET(request: Request) {
     }
 
     const { instrument, date } = parsed.data;
+
+    // A permanent provider gap must not be reported as a transient failure.
+    const unsupported = unsupportedReason(instrument);
+    if (unsupported) {
+      return apiSuccess(
+        {
+          instrument,
+          requestedDate: date ?? null,
+          available: false as const,
+          error: unsupported,
+        },
+        { cache: CACHE.none },
+      );
+    }
 
     const tradingDate = date ?? (await getDefaultTradingDate(instrument));
     if (!tradingDate) {

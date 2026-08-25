@@ -404,6 +404,10 @@ export class YahooFinanceProvider implements MarketDataProvider {
     return bars.length ? bars[bars.length - 1] : null;
   }
 
+  supports(instrument: Instrument): boolean {
+    return Boolean(instrument.providerSymbols[this.id]);
+  }
+
   async getTradingCalendar(
     request: HistoricalOHLCRequest,
   ): Promise<ISODate[]> {

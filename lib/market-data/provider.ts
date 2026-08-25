@@ -64,6 +64,16 @@ export interface MarketDataProvider {
    * always be traced to the exact series it came from.
    */
   getResolvedSymbol(instrument: Instrument): Promise<string>;
+
+  /**
+   * Can this provider serve this instrument at all?
+   *
+   * Distinguishes "cannot ever" from "failed just now". MCX instruments are
+   * unreachable through Yahoo permanently — it has no MCX coverage — so telling
+   * a user to try again later would be false. The UI needs to say which
+   * provider is required instead.
+   */
+  supports(instrument: Instrument): boolean;
 }
 
 /** Raised when a provider cannot supply data. Surfaced as PRD §27 messaging. */

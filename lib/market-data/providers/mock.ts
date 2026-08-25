@@ -125,6 +125,11 @@ export class MockMarketDataProvider implements MarketDataProvider {
     return getCalendar(instrument.market).tradingDaysBetween(start, end);
   }
 
+  supports(): boolean {
+    // Synthetic data can be produced for anything.
+    return true;
+  }
+
   async getResolvedSymbol(instrument: Instrument): Promise<string> {
     return `mock:${instrument.symbol}`;
   }

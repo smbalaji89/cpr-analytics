@@ -49,6 +49,13 @@ export interface Instrument {
    */
   futuresContract?: FuturesContractConfig;
   /**
+   * Set for Upstox-reachable exchange futures whose contract rolls.
+   *
+   * The provider resolves the nearest sufficiently-distant expiry from Upstox's
+   * public instrument master, so there is no hardcoded expiry to maintain.
+   */
+  upstoxContract?: { exchange: "MCX"; root: string };
+  /**
    * Disclosure shown in the UI where the tradeable contract differs from what a
    * user might assume from the name. Never leave a mismatch implicit.
    */
@@ -77,7 +84,11 @@ export const INSTRUMENTS: Instrument[] = [
     category: "INDIAN_INDICES",
     market: "NSE",
     currency: "INR",
-    providerSymbols: { yahoo: "^NSEI", kite: "NSE:NIFTY 50" },
+    providerSymbols: {
+      yahoo: "^NSEI",
+      kite: "NSE:NIFTY 50",
+      upstox: "NSE_INDEX|Nifty 50",
+    },
     classificationMethod: "POINTS",
   },
   {
@@ -87,7 +98,11 @@ export const INSTRUMENTS: Instrument[] = [
     category: "INDIAN_INDICES",
     market: "NSE",
     currency: "INR",
-    providerSymbols: { yahoo: "^NSEBANK", kite: "NSE:NIFTY BANK" },
+    providerSymbols: {
+      yahoo: "^NSEBANK",
+      kite: "NSE:NIFTY BANK",
+      upstox: "NSE_INDEX|Nifty Bank",
+    },
     classificationMethod: "PERCENTAGE",
   },
   {
@@ -97,7 +112,11 @@ export const INSTRUMENTS: Instrument[] = [
     category: "INDIAN_INDICES",
     market: "BSE",
     currency: "INR",
-    providerSymbols: { yahoo: "^BSESN", kite: "BSE:SENSEX" },
+    providerSymbols: {
+      yahoo: "^BSESN",
+      kite: "BSE:SENSEX",
+      upstox: "BSE_INDEX|SENSEX",
+    },
     classificationMethod: "PERCENTAGE",
   },
   {
@@ -153,7 +172,11 @@ export const INSTRUMENTS: Instrument[] = [
     category: "COMMODITIES_IN",
     market: "NSE",
     currency: "INR",
-    providerSymbols: { yahoo: "GOLDBEES.NS", kite: "NSE:GOLDBEES" },
+    providerSymbols: {
+      yahoo: "GOLDBEES.NS",
+      kite: "NSE:GOLDBEES",
+      upstox: "NSE_EQ|INF204KB17I5",
+    },
     classificationMethod: "PERCENTAGE",
     note: "Nippon India Gold BeES — an NSE-listed gold ETF in INR, tracking domestic gold prices (import duty and GST included). This is NOT the MCX GOLD futures contract: levels here are ETF unit prices (~INR 133), not MCX contract prices. CPR width % is comparable to MCX; BC/P/TC are not.",
   },
@@ -164,9 +187,58 @@ export const INSTRUMENTS: Instrument[] = [
     category: "COMMODITIES_IN",
     market: "NSE",
     currency: "INR",
-    providerSymbols: { yahoo: "SILVERBEES.NS", kite: "NSE:SILVERBEES" },
+    providerSymbols: {
+      yahoo: "SILVERBEES.NS",
+      kite: "NSE:SILVERBEES",
+      upstox: "NSE_EQ|INF204KC1402",
+    },
     classificationMethod: "PERCENTAGE",
     note: "Nippon India Silver ETF — an NSE-listed silver ETF in INR, tracking domestic silver prices. This is NOT the MCX SILVER futures contract: levels here are ETF unit prices, not MCX contract prices. CPR width % is comparable to MCX; BC/P/TC are not.",
+  },
+  // ── MCX futures ───────────────────────────────────────────────────────────
+  //
+  // The contracts Indian commodity traders actually trade, in INR. Reachable
+  // ONLY through Upstox: Yahoo has no MCX coverage (every symbol 404s), so
+  // these report unavailable under the default provider. That is deliberate —
+  // showing a COMEX proxy under an MCX name would be worse than showing nothing.
+  //
+  // The contract month rolls; the provider resolves the nearest sufficiently
+  // distant expiry from the public instrument master, so no expiry is hardcoded.
+  {
+    symbol: "GOLD_MCX",
+    name: "Gold (MCX)",
+    shortName: "Gold MCX",
+    category: "COMMODITIES_IN",
+    market: "MCX",
+    currency: "INR",
+    providerSymbols: {},
+    upstoxContract: { exchange: "MCX", root: "GOLD" },
+    classificationMethod: "PERCENTAGE",
+    note: "MCX GOLD futures in INR per 10 grams — the contract Indian traders actually trade. Requires the Upstox provider; Yahoo has no MCX coverage, so this reports unavailable on the default provider.",
+  },
+  {
+    symbol: "SILVER_MCX",
+    name: "Silver (MCX)",
+    shortName: "Silver MCX",
+    category: "COMMODITIES_IN",
+    market: "MCX",
+    currency: "INR",
+    providerSymbols: {},
+    upstoxContract: { exchange: "MCX", root: "SILVER" },
+    classificationMethod: "PERCENTAGE",
+    note: "MCX SILVER futures in INR per kilogram. Requires the Upstox provider; Yahoo has no MCX coverage.",
+  },
+  {
+    symbol: "CRUDEOIL_MCX",
+    name: "Crude Oil (MCX)",
+    shortName: "Crude MCX",
+    category: "COMMODITIES_IN",
+    market: "MCX",
+    currency: "INR",
+    providerSymbols: {},
+    upstoxContract: { exchange: "MCX", root: "CRUDEOIL" },
+    classificationMethod: "PERCENTAGE",
+    note: "MCX CRUDEOIL futures in INR per barrel. Requires the Upstox provider; Yahoo has no MCX coverage.",
   },
   {
     symbol: "BTC",

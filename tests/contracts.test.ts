@@ -111,9 +111,18 @@ describe("instrument contract wiring", () => {
     }
   });
 
-  it("gives every instrument a resolvable provider symbol", () => {
+  it("gives every instrument a Yahoo symbol EXCEPT the MCX contracts", () => {
+    // Yahoo has no MCX coverage at all — every MCX symbol returns 404 — so the
+    // MCX instruments are reachable only through Upstox. They report
+    // unavailable on the default provider, which is correct: showing a COMEX
+    // proxy under an MCX name would be worse than showing nothing.
     for (const instrument of INSTRUMENTS) {
-      expect(instrument.providerSymbols.yahoo).toBeTruthy();
+      if (instrument.market === "MCX") {
+        expect(instrument.providerSymbols.yahoo).toBeUndefined();
+        expect(instrument.upstoxContract).toBeDefined();
+      } else {
+        expect(instrument.providerSymbols.yahoo).toBeTruthy();
+      }
     }
   });
 });

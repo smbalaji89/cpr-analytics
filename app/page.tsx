@@ -35,6 +35,8 @@ import {
   getDefaultTradingDate,
   getHistory,
   horizonFor,
+  todayFor,
+  unsupportedReason,
 } from "@/lib/services/cpr-service";
 import { isISODate, type ISODate } from "@/lib/utils/date";
 
@@ -173,13 +175,23 @@ async function DashboardContent({
   const activeDate = requestedDate ?? fallbackDate;
 
   if (!activeDate) {
+    // Distinguish a permanent provider gap from a transient outage: telling
+    // someone to try again later when it can never work is simply wrong.
+    const unsupported = unsupportedReason(symbol);
     return (
-      <Card className="mt-4 p-6">
-        <p className="text-sm font-medium text-ink">
-          Market data temporarily unavailable.
-        </p>
-        <p className="mt-1 text-sm text-ink-muted">Please try again later.</p>
-      </Card>
+      <div className="mt-4">
+        <CPRUnavailableCard
+          instrumentName={instrument.name}
+          tradingDate={todayFor(instrument)}
+          error={
+            unsupported ?? {
+              reason: "PROVIDER_ERROR",
+              message:
+                "Market data temporarily unavailable. Please try again later.",
+            }
+          }
+        />
+      </div>
     );
   }
 
