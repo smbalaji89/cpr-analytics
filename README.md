@@ -465,6 +465,7 @@ Every response is `{ ok: true, data, meta }` or `{ ok: false, error }`.
 
 | Endpoint | Notes |
 | --- | --- |
+| `GET /api/health` | Deployment diagnostics: provider and database reachability with timings, plus config *shape* (never values). Safe to share. |
 | `GET /api/instruments` | Registry grouped by category. |
 | `GET /api/cpr?instrument=NIFTY50&date=2026-08-25` | Omit `date` for the default trading date. |
 | `GET /api/cpr/history?instrument=NIFTY50&days=10` | Newest first. Optional `before=`, `category=`. |
