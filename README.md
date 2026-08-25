@@ -192,6 +192,21 @@ UPSTOX_ACCESS_TOKEN=your_analytics_token
 
 Verify with `/api/health` — `provider.id` should read `upstox`.
 
+#### "No segments for these users are active"
+
+An **account** error, not a token or code error — the token authenticated, but
+the Upstox account has no active trading segments. Indian brokers deactivate
+segments after a period of inactivity, and SEBI requires periodic
+re-validation.
+
+Fix it in the **Upstox app or web** (not the developer portal): reactivate the
+account and enable the segments you need. MCX additionally needs the
+**commodity** segment, which usually requires income proof.
+
+Until it is sorted, `MARKET_DATA_PROVIDER=yahoo` serves every instrument except
+the three MCX ones. The provider appends this guidance to the raw error so it is
+readable where it appears.
+
 #### What it unlocks
 
 **MCX contracts in INR** — `GOLD_MCX`, `SILVER_MCX`, `CRUDEOIL_MCX`. These are

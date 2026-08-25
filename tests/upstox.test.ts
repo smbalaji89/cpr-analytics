@@ -5,6 +5,7 @@ import { MarketDataError } from "@/lib/market-data/provider";
 import {
   UpstoxProvider,
   decodeInstrumentMaster,
+  explainUpstoxError,
   hasSessionEnded,
   parseCandle,
   pickFuturesContract,
@@ -238,6 +239,43 @@ describe("historical bars", () => {
     await expect(provider.getHistoricalOHLC(request)).rejects.toThrow(
       /Analytics Token/,
     );
+  });
+});
+
+describe("account-level errors are explained, not just relayed", () => {
+  it("identifies inactive segments as an account setting", () => {
+    const hint = explainUpstoxError(
+      "No segments for these users are active. Manual reactivation is recommended from Upstox app/web.",
+    );
+    expect(hint).toContain("ACCOUNT setting");
+    expect(hint).toContain("COMMODITY segment");
+    expect(hint).toContain("yahoo");
+  });
+
+  it("surfaces the hint through the provider", async () => {
+    const provider = providerWith({
+      status: "error",
+      errors: [
+        { message: "No segments for these users are active.", errorCode: "UDAPI" },
+      ],
+    });
+    await expect(
+      provider.getHistoricalOHLC({
+        instrument: requireInstrument("NIFTY50"),
+        start: "2026-08-24",
+        end: "2026-08-25",
+      }),
+    ).rejects.toThrow(/ACCOUNT setting/);
+  });
+
+  it("points a token error at regeneration instead", () => {
+    expect(explainUpstoxError("Invalid token used to access API")).toContain(
+      "regenerate the Analytics Token",
+    );
+  });
+
+  it("adds nothing for an error it does not recognise", () => {
+    expect(explainUpstoxError("some unrelated failure")).toBe("");
   });
 });
 

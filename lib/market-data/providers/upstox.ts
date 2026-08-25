@@ -233,10 +233,9 @@ export class UpstoxProvider implements MarketDataProvider {
 
     const body = (await response.json()) as UpstoxCandleResponse;
     if (body.status !== "success" || !body.data?.candles) {
+      const message = body.errors?.[0]?.message ?? "unexpected response shape";
       throw new MarketDataError(
-        `${this.label} error: ${
-          body.errors?.[0]?.message ?? "unexpected response shape"
-        }`,
+        `${this.label} error: ${message}${explainUpstoxError(message)}`,
         { instrumentSymbol: instrument.symbol },
       );
     }
@@ -290,6 +289,34 @@ export class UpstoxProvider implements MarketDataProvider {
   async getTradingCalendar(request: HistoricalOHLCRequest): Promise<ISODate[]> {
     return (await this.getHistoricalOHLC(request)).map((bar) => bar.date);
   }
+}
+
+/**
+ * Turn an Upstox account-level error into something the user can act on.
+ *
+ * These are account state, not code faults, and the raw wording gives no clue
+ * what to actually do — so the fix is spelled out where it is read.
+ */
+export function explainUpstoxError(message: string): string {
+  const text = message.toLowerCase();
+
+  if (text.includes("segment") && text.includes("active")) {
+    return (
+      " — this is an ACCOUNT setting, not a token problem: your token" +
+      " authenticated but the account has no active trading segments. Log in to" +
+      " the Upstox app or web (not the developer portal) and reactivate them." +
+      " MCX instruments additionally need the COMMODITY segment enabled, which" +
+      " usually requires income proof. Until then, MARKET_DATA_PROVIDER=yahoo" +
+      " serves everything except MCX."
+    );
+  }
+  if (text.includes("token") || text.includes("unauthor")) {
+    return (
+      " — regenerate the Analytics Token from Developer Apps (Analytics tab)." +
+      " Only one is active per account, so generating a new one revokes the old."
+    );
+  }
+  return "";
 }
 
 /* ── pure helpers, exported so they can be tested without a network ─────── */
