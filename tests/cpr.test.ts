@@ -179,6 +179,46 @@ describe("buildCPRResult", () => {
   });
 });
 
+describe("displayed figures reconcile with each other", () => {
+  /**
+   * Anyone checking the arithmetic by hand starts from the H/L/C on screen.
+   * If the levels were derived from higher-precision inputs than those shown,
+   * their sums would not match and the numbers would look wrong when they are
+   * not. Vendor floats also carry noise — Yahoo returns 24378.599609375 for a
+   * session NSE publishes as 24378.60 — so rounding first moves the input
+   * TOWARDS the exchange's own figure.
+   */
+  const noisyBars: OHLC[] = [
+    { date: "2026-08-26", open: 24341.95, high: 24378.599609375, low: 24207.75390625, close: 24207.75390625 },
+    { date: "2026-08-25", open: 79000.1, high: 79552.828125, low: 78894.2578125, close: 79223.546875 },
+    { date: "2026-08-24", open: 82.7, high: 83.0400009155, low: 82.5899963379, close: 82.8100004196 },
+  ];
+
+  it.each(noisyBars.map((b) => [b.date, b] as const))(
+    "%s: pivot recomputes from the DISPLAYED high/low/close",
+    (_date, bar) => {
+      const r = buildCPRResult(bar, "2026-12-31", "PERCENTAGE");
+      const round2 = (v: number) => Number(`${Math.round(Number(`${v}e2`))}e-2`);
+      expect(round2((r.high + r.low + r.close) / 3)).toBe(r.pivot);
+    },
+  );
+
+  it.each(noisyBars.map((b) => [b.date, b] as const))(
+    "%s: printed TC minus printed BC equals the printed width",
+    (_date, bar) => {
+      const r = buildCPRResult(bar, "2026-12-31", "PERCENTAGE");
+      expect(Number((r.tc - r.bc).toFixed(2))).toBe(r.cprWidth);
+    },
+  );
+
+  it("strips vendor float noise back to the exchange's own value", () => {
+    const r = buildCPRResult(noisyBars[0], "2026-12-31", "PERCENTAGE");
+    // NSE published this session as high 24378.60.
+    expect(r.high).toBe(24378.6);
+    expect(r.low).toBe(24207.75);
+  });
+});
+
 describe("calculatePivotLevels", () => {
   // Round numbers so the expected values are checkable by hand.
   const high = 110;

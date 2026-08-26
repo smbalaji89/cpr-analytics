@@ -17,11 +17,21 @@ import {
  * this module rather than re-deriving levels.
  *
  * ── Rounding policy ────────────────────────────────────────────────────────
- * Levels are rounded to 2dp FIRST, then width is derived from the rounded
- * levels, then width % from the rounded width. This guarantees the displayed
- * figures are internally consistent — a user who subtracts the printed BC from
- * the printed TC gets exactly the printed width. Deriving width from full
- * precision instead can disagree with the visible levels by a cent.
+ * The SOURCE H/L/C is rounded to 2dp first, then the levels are derived from
+ * those rounded inputs, then width from the rounded levels, then width % from
+ * the rounded width.
+ *
+ * Rounding the inputs matters for two reasons:
+ *
+ *  1. **Verifiability.** Everything shown reconciles. A user who takes the
+ *     printed H/L/C and works out the pivot by hand gets the printed pivot;
+ *     subtracting the printed BC from the printed TC gives the printed width.
+ *     Computing from full precision while displaying 2dp breaks that quietly.
+ *
+ *  2. **Vendor float noise.** Yahoo returns `24378.599609375` for a session
+ *     NSE publishes as `24378.60`. Exchange prices ARE 2dp; the extra digits
+ *     are IEEE-754 representation artefacts, and rounding them away moves the
+ *     input closer to the exchange's own figure, not further from it.
  */
 
 /** Validate a source bar before any arithmetic (PRD §30). */
@@ -67,7 +77,16 @@ export function calculateCPR(bar: Pick<OHLC, "high" | "low" | "close">): CPRLeve
   inverted: boolean;
 } {
   validateOHLC(bar);
-  const { high, low, close } = bar;
+
+  // Round the inputs to displayed precision before deriving anything, so the
+  // levels reconcile with the H/L/C shown alongside them.
+  const high = roundTo(bar.high, PRICE_DECIMALS);
+  const low = roundTo(bar.low, PRICE_DECIMALS);
+  const close = roundTo(bar.close, PRICE_DECIMALS);
+
+  // Rounding can collapse a hair-thin range; that is a degenerate bar at the
+  // precision anyone actually trades on.
+  validateOHLC({ high, low, close });
 
   const pivotRaw = (high + low + close) / 3;
   const bcRaw = (high + low) / 2;
@@ -129,7 +148,12 @@ export function buildCPRResult(
     );
   }
 
-  const { pivot, bc, tc, inverted } = calculateCPR(sourceBar);
+  // Everything derives from the SAME rounded inputs that get displayed.
+  const high = roundTo(sourceBar.high, PRICE_DECIMALS);
+  const low = roundTo(sourceBar.low, PRICE_DECIMALS);
+  const close = roundTo(sourceBar.close, PRICE_DECIMALS);
+
+  const { pivot, bc, tc, inverted } = calculateCPR({ high, low, close });
   const cprWidth = calculateCPRWidth(tc, bc);
   const cprWidthPercent = calculateCPRWidthPercentage(cprWidth, pivot);
   const classification = classify(cprWidth, cprWidthPercent, method);
@@ -137,16 +161,16 @@ export function buildCPRResult(
   return {
     tradingDate,
     sourceDate: sourceBar.date,
-    high: roundTo(sourceBar.high, PRICE_DECIMALS),
-    low: roundTo(sourceBar.low, PRICE_DECIMALS),
-    close: roundTo(sourceBar.close, PRICE_DECIMALS),
+    high,
+    low,
+    close,
     pivot,
     bc,
     tc,
     cprWidth,
     cprWidthPercent,
     inverted,
-    pivotLevels: calculatePivotLevels(sourceBar.high, sourceBar.low, pivot),
+    pivotLevels: calculatePivotLevels(high, low, pivot),
     ...classification,
   };
 }

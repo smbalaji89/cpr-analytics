@@ -229,7 +229,7 @@ export const INSTRUMENTS: Instrument[] = [
     upstoxContract: { exchange: "MCX", root: "GOLD" },
     classificationMethod: "PERCENTAGE",
     preferredProvider: "upstox",
-    note: "MCX GOLD futures in INR per 10 grams — the contract Indian traders actually trade. Requires the Upstox provider; Yahoo has no MCX coverage, so this reports unavailable on the default provider.",
+    note: "MCX GOLD futures in INR per 10 grams — the contract Indian traders actually trade. Served through Upstox, which is the only source with MCX coverage; without an Upstox token this instrument is unavailable rather than substituted with a COMEX proxy. The contract month rolls automatically.",
   },
   {
     symbol: "SILVER_MCX",
@@ -242,7 +242,7 @@ export const INSTRUMENTS: Instrument[] = [
     upstoxContract: { exchange: "MCX", root: "SILVER" },
     classificationMethod: "PERCENTAGE",
     preferredProvider: "upstox",
-    note: "MCX SILVER futures in INR per kilogram. Requires the Upstox provider; Yahoo has no MCX coverage.",
+    note: "MCX SILVER futures in INR per kilogram. Served through Upstox, the only source with MCX coverage. The contract month rolls automatically.",
   },
   {
     symbol: "CRUDEOIL_MCX",
@@ -255,7 +255,7 @@ export const INSTRUMENTS: Instrument[] = [
     upstoxContract: { exchange: "MCX", root: "CRUDEOIL" },
     classificationMethod: "PERCENTAGE",
     preferredProvider: "upstox",
-    note: "MCX CRUDEOIL futures in INR per barrel. Requires the Upstox provider; Yahoo has no MCX coverage.",
+    note: "MCX CRUDEOIL futures in INR per barrel. Served through Upstox, the only source with MCX coverage. Trades until 23:30 IST, so the next session's CPR appears later in the evening than for the equity markets.",
   },
   {
     symbol: "BTC",

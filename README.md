@@ -62,7 +62,7 @@ variable is prefixed `NEXT_PUBLIC_`, and every one is read only in server code.
 | `DATABASE_URL` | No | Postgres connection string (Supabase **transaction pooler**, port 6543). Omit to run in live-compute mode. |
 | `DIRECT_DATABASE_URL` | For migrations | Supabase **direct** string (port 5432). Used by `db:migrate` only. |
 | `MARKET_DATA_PROVIDER` | No | `yahoo` (default), `upstox`, `kite`, or `mock`. |
-| `UPSTOX_ACCESS_TOKEN` | For `upstox` | Analytics Token — free, valid 1 year, read-only. |
+| `UPSTOX_ACCESS_TOKEN` | For Indian data | Analytics Token — free, valid 1 year, read-only. Set it and Indian instruments switch to Upstox automatically. |
 | `KITE_API_KEY` | For `kite` | Zerodha Kite Connect API key. |
 | `KITE_ACCESS_TOKEN` | For `kite` | Expires 6 AM IST daily; needs manual renewal. |
 | `MARKET_DATA_API_KEY` | No | Reserved for providers that authenticate. Yahoo needs none. |
@@ -183,14 +183,33 @@ cancel orders. Market-data endpoints need no static IP, so it works from
 serverless. Only one token is active per account — generating a new one revokes
 the previous.
 
-#### Setup
+#### Setup — one variable
 
 ```bash
-MARKET_DATA_PROVIDER=upstox
 UPSTOX_ACCESS_TOKEN=your_analytics_token
 ```
 
-Verify with `/api/health` — `provider.id` should read `upstox`.
+That is the whole migration. Instruments carry a `preferredProvider`, and the
+eight Indian ones name Upstox: NIFTY 50, BANK NIFTY, SENSEX, the two NSE ETFs
+and the three MCX contracts. They route to Upstox the moment the token exists
+and fall back to the configured default when it does not, so removing the token
+degrades rather than breaks. Global commodities and BTC stay on Yahoo.
+
+Setting `MARKET_DATA_PROVIDER=upstox` as well would route *everything* through
+Upstox, which is not wanted — it has no COMEX or crypto coverage.
+
+Confirm the routing per instrument: every API record carries `dataSource`, and
+`/api/cpr/compare` shows all twelve at once.
+
+#### The current session lives on a different endpoint
+
+Upstox's daily series **excludes the session in progress**. Measured at 18:30
+IST, its newest daily candle was the *previous* session for every instrument
+type. Today's session comes from the intraday endpoint instead
+(`/v3/historical-candle/intraday/{key}/days/1`), which returns it as a single
+day candle matching NSE exactly. The provider fetches both and merges them, the
+daily record winning on overlap once it exists. Without that, the next day's CPR
+could never be formed.
 
 #### "No segments for these users are active"
 

@@ -569,6 +569,28 @@ export async function getCPRForDate(
       };
     }
 
+    // No record and no recorded failure means the exchange simply had no
+    // session that day.
+    const reason = calendar.closureReason(tradingDate);
+    if (reason) {
+      const suggested = calendar.previousTradingDay(tradingDate);
+      return {
+        lookup: {
+          available: false,
+          error: {
+            reason: "MARKET_CLOSED",
+            message:
+              reason === "WEEKEND"
+                ? "The market was closed on this date (weekend)."
+                : "The market was closed on this date (holiday).",
+            suggestedDate: suggested,
+          },
+        },
+        context: series.context,
+        today,
+      };
+    }
+
     // Beyond the horizon is NOT missing data: a CPR for day D is derived from
     // day D-1's completed session, so nothing past one session after the last
     // settled one can exist yet. Saying "no data available" invites the user to
@@ -586,28 +608,6 @@ export async function getCPRForDate(
               `${formatDisplayDate(waitingOn)} session, which has not completed yet. ` +
               `The furthest date currently available is ${formatDisplayDate(furthest)}.`,
             suggestedDate: furthest,
-          },
-        },
-        context: series.context,
-        today,
-      };
-    }
-
-    // No record and no recorded failure means the exchange simply had no
-    // session that day.
-    const reason = calendar.closureReason(tradingDate);
-    if (reason) {
-      const suggested = calendar.previousTradingDay(tradingDate);
-      return {
-        lookup: {
-          available: false,
-          error: {
-            reason: "MARKET_CLOSED",
-            message:
-              reason === "WEEKEND"
-                ? "The market was closed on this date (weekend)."
-                : "The market was closed on this date (holiday).",
-            suggestedDate: suggested,
           },
         },
         context: series.context,
