@@ -206,7 +206,7 @@ describe("a newly added instrument backfills the full retention window", () => {
     const { getSeries } = await import("@/lib/services/cpr-service");
     const { retentionDays } = await import("@/lib/services/retention");
 
-    const series = await getSeries("GOLD_IN");
+    const series = await getSeries("GOLD_MCX");
     const dates = series.records.map((r) => r.tradingDate).sort();
 
     // ~5 sessions a week over 90 calendar days, minus holidays.
@@ -219,11 +219,11 @@ describe("a newly added instrument backfills the full retention window", () => {
 
   it("asks for only 10 rows but still has the full window cached behind it", async () => {
     isDatabaseConfigured.mockReturnValue(false);
-    const ten = await getHistory("GOLD_IN", 10);
+    const ten = await getHistory("GOLD_MCX", 10);
     expect(ten.records).toHaveLength(10);
 
     const { getSeries } = await import("@/lib/services/cpr-service");
-    const all = await getSeries("GOLD_IN");
+    const all = await getSeries("GOLD_MCX");
     expect(all.records.length).toBeGreaterThan(50);
   });
 });

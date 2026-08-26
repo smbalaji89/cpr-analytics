@@ -10,6 +10,19 @@ import {
  *
  * Adding an instrument means adding one entry here plus a provider symbol
  * mapping — nothing in the CPR engine, API, or UI is instrument-aware.
+ *
+ * ── Scope: derivatives only ────────────────────────────────────────────────
+ * CPR here is used to trade F&O, so every instrument is either a futures
+ * contract or an index with a listed derivatives market.
+ *
+ * The NSE gold and silver ETFs (GOLDBEES, SILVERBEES) were carried for a while
+ * as INR commodity stand-ins, from when Yahoo was the only provider and it has
+ * no MCX coverage at all. They are deliberately gone: they are cash-segment
+ * instruments with NO derivatives — checked against Upstox's NSE master, both
+ * appear only as NSE_EQ/EQ rows with zero FUT/CE/PE against them — and their
+ * levels are ETF unit prices (~INR 133) that do not transfer to an MCX
+ * contract. Upstox reaches the real MCX contracts, so the stand-ins have no
+ * remaining purpose. Do not re-add them without a cash-market use case.
  */
 
 export type InstrumentCategory =
@@ -74,7 +87,7 @@ export interface Instrument {
 export const CATEGORY_LABELS: Record<InstrumentCategory, string> = {
   INDIAN_INDICES: "Indian Indices",
   COMMODITIES: "Commodities · Global (USD)",
-  COMMODITIES_IN: "Commodities · India (INR)",
+  COMMODITIES_IN: "Commodities · MCX (INR)",
   CRYPTO: "Cryptocurrency",
 };
 
@@ -166,48 +179,6 @@ export const INSTRUMENTS: Instrument[] = [
     classificationMethod: "PERCENTAGE",
     futuresContract: CONTRACT_SPECS.CRUDE,
     note: "NYMEX WTI futures in USD per barrel — not the MCX INR contract. The most liquid listed contract month is selected automatically and shown with each figure.",
-  },
-  // ── Commodities · India (INR) ─────────────────────────────────────────────
-  //
-  // Yahoo has NO MCX coverage — every MCX symbol format returns 404 — so these
-  // are the most liquid NSE-listed INR commodity ETFs instead. They are real,
-  // exchange-traded instruments on the NSE calendar, but they are NOT the MCX
-  // futures contracts, and their price scale is completely different (a
-  // GOLDBEES unit is ~INR 133 against MCX gold at ~INR 1,00,000 per 10g).
-  //
-  // Width % remains comparable to MCX because it divides by the pivot; the
-  // BC/P/TC levels do not transfer. Both facts are stated on every card.
-  {
-    symbol: "GOLD_IN",
-    name: "Gold (India)",
-    shortName: "Gold IN",
-    category: "COMMODITIES_IN",
-    market: "NSE",
-    currency: "INR",
-    providerSymbols: {
-      yahoo: "GOLDBEES.NS",
-      kite: "NSE:GOLDBEES",
-      upstox: "NSE_EQ|INF204KB17I5",
-    },
-    classificationMethod: "PERCENTAGE",
-    preferredProvider: "upstox",
-    note: "Nippon India Gold BeES — an NSE-listed gold ETF in INR, tracking domestic gold prices (import duty and GST included). This is NOT the MCX GOLD futures contract: levels here are ETF unit prices (~INR 133), not MCX contract prices. CPR width % is comparable to MCX; BC/P/TC are not.",
-  },
-  {
-    symbol: "SILVER_IN",
-    name: "Silver (India)",
-    shortName: "Silver IN",
-    category: "COMMODITIES_IN",
-    market: "NSE",
-    currency: "INR",
-    providerSymbols: {
-      yahoo: "SILVERBEES.NS",
-      kite: "NSE:SILVERBEES",
-      upstox: "NSE_EQ|INF204KC1402",
-    },
-    classificationMethod: "PERCENTAGE",
-    preferredProvider: "upstox",
-    note: "Nippon India Silver ETF — an NSE-listed silver ETF in INR, tracking domestic silver prices. This is NOT the MCX SILVER futures contract: levels here are ETF unit prices, not MCX contract prices. CPR width % is comparable to MCX; BC/P/TC are not.",
   },
   // ── MCX futures ───────────────────────────────────────────────────────────
   //

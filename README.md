@@ -93,35 +93,32 @@ The app depends on the `MarketDataProvider` interface
 | NIFTY 50 | `^NSEI` | NSE | INR |
 | BANK NIFTY | `^NSEBANK` | NSE | INR |
 | SENSEX | `^BSESN` | BSE | INR |
-| Gold (India) | `GOLDBEES.NS` | NSE | INR |
-| Silver (India) | `SILVERBEES.NS` | NSE | INR |
 | Gold | auto-resolved `GC<month><yy>.CMX` | COMEX | USD |
 | Silver | auto-resolved `SI<month><yy>.CMX` | COMEX | USD |
 | Crude Oil | auto-resolved `CL<month><yy>.NYM` | NYMEX | USD |
 | Bitcoin | `BTC-USD` | 24/7 | USD |
 
-#### Indian commodities are ETFs, not MCX futures
+#### Scope: derivatives only
 
-**Yahoo has no MCX coverage** — every MCX symbol format returns 404, verified
-against `GOLD.MCX`, `GOLDM.MCX`, `SILVER.MCX`, `CRUDEOIL.MCX`, `MCXGOLD.NS` and
-`CRUDEOIL.NS`.
+CPR here is used to trade F&O, so every instrument is a futures contract or an
+index with a listed derivatives market. The MCX contracts are reachable only
+through Upstox — **Yahoo has no MCX coverage**, verified against `GOLD.MCX`,
+`GOLDM.MCX`, `SILVER.MCX`, `CRUDEOIL.MCX`, `MCXGOLD.NS` and `CRUDEOIL.NS`, all
+404 — so on the Yahoo provider alone they report unavailable rather than being
+substituted with a COMEX proxy.
 
-The "Commodities · India (INR)" group therefore uses the most liquid NSE-listed
-INR commodity ETFs (20M+ shares/day). They are real, exchange-traded instruments
-on the NSE calendar tracking domestic prices including import duty and GST — but
-they are **not** the MCX futures contracts:
+MCX levels are **not** synthesised from COMEX × USDINR. That ignores import duty
+(~6%), GST (3%) and local basis, so the numbers would look plausible and be
+wrong. The measured gap on the pull documented below was +12.3% on gold and
++14.9% on silver.
 
-| | MCX GOLD futures | GOLDBEES.NS |
-| --- | --- | --- |
-| Price scale | ~₹1,00,000 per 10g | ~₹133 per unit |
-| CPR width % | comparable | comparable |
-| BC / Pivot / TC | tradeable on MCX | **not** MCX levels |
-
-Every affected card states this. MCX levels were **not** synthesised from
-COMEX × USDINR: that ignores import duty (~6%), GST (3%) and local basis, so the
-numbers would look plausible and be wrong. Real MCX data needs an authorised
-feed (Global Datafeeds, TrueData, Zerodha Kite Connect) behind a new
-`MarketDataProvider` — the CPR engine needs no changes for that.
+The NSE gold and silver ETFs (`GOLDBEES.NS`, `SILVERBEES.NS`) were carried here
+for a while as INR commodity stand-ins, from when Yahoo was the only provider.
+They have been removed: they are cash-segment instruments with **no
+derivatives** — in Upstox's NSE instrument master both appear only as
+`NSE_EQ`/`EQ` rows, with zero FUT/CE/PE against either — and their levels are
+ETF unit prices (~₹133) that do not transfer to an MCX contract. Now that
+Upstox reaches the real contracts, the stand-ins have no purpose.
 
 No INR crude instrument exists on NSE, so Crude Oil remains NYMEX-only.
 
@@ -312,8 +309,8 @@ When a symbol stops resolving the provider lists the closest live matches from
 the instruments dump, which tells you the new one.
 
 > The `kite` symbols shipped for the existing NSE/BSE instruments
-> (`NSE:NIFTY 50`, `NSE:NIFTY BANK`, `BSE:SENSEX`, `NSE:GOLDBEES`,
-> `NSE:SILVERBEES`) follow Kite's documented naming but have **not** been
+> (`NSE:NIFTY 50`, `NSE:NIFTY BANK`, `BSE:SENSEX`) follow Kite's documented
+> naming but have **not** been
 > verified against a live instruments dump — that needs credentials. If one does
 > not resolve, the error names the closest matches.
 
