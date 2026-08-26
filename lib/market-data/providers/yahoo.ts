@@ -97,6 +97,13 @@ export class YahooFinanceProvider implements MarketDataProvider {
   readonly id = "yahoo";
   readonly label = "Yahoo Finance";
   readonly isMock = false;
+  /**
+   * Yahoo is an explicitly delayed feed and its daily bar keeps moving after
+   * the close. An hour covers the drift observed on NSE sessions; the cost is
+   * that tomorrow's CPR appears an hour after the close rather than at it,
+   * which is the right trade against publishing a figure that later changes.
+   */
+  readonly settlementDelayMinutes = 60;
 
   private readonly revalidateSeconds: number;
   private readonly maxAttempts: number;
@@ -343,12 +350,13 @@ export class YahooFinanceProvider implements MarketDataProvider {
       if (date < todayTz) {
         complete = true;
       } else if (date === todayTz && regularEndDate === todayTz && regularEnd) {
-        // The session clock has to have passed, and the bar has to be
-        // internally coherent — a live last price spliced into a bar the vendor
-        // has not finished aggregating routinely breaks the second condition.
-        const sessionEnded = nowSeconds >= regularEnd;
+        // The clock must have passed the close PLUS this source's settlement
+        // delay, and the bar must be internally coherent. Coherence alone is
+        // not enough: a delayed feed's bar stays coherent while it is still
+        // moving. See `settlementDelayMinutes`.
+        const settledAt = regularEnd + this.settlementDelayMinutes * 60;
         const coherent = close >= low && close <= high;
-        complete = sessionEnded && coherent;
+        complete = nowSeconds >= settledAt && coherent;
       } else {
         complete = false;
       }

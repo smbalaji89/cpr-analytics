@@ -56,6 +56,15 @@ export interface Instrument {
    */
   upstoxContract?: { exchange: "MCX"; root: string };
   /**
+   * Provider to use for this instrument when it is usable.
+   *
+   * Indian instruments prefer Upstox: it is exchange-sourced, settles at the
+   * close rather than hours later, and is the only route to MCX. Falls back to
+   * the configured default when no Upstox token is present, so the migration is
+   * literally just setting `UPSTOX_ACCESS_TOKEN`.
+   */
+  preferredProvider?: "upstox" | "kite" | "yahoo";
+  /**
    * Disclosure shown in the UI where the tradeable contract differs from what a
    * user might assume from the name. Never leave a mismatch implicit.
    */
@@ -90,6 +99,7 @@ export const INSTRUMENTS: Instrument[] = [
       upstox: "NSE_INDEX|Nifty 50",
     },
     classificationMethod: "POINTS",
+    preferredProvider: "upstox",
   },
   {
     symbol: "BANKNIFTY",
@@ -104,6 +114,7 @@ export const INSTRUMENTS: Instrument[] = [
       upstox: "NSE_INDEX|Nifty Bank",
     },
     classificationMethod: "PERCENTAGE",
+    preferredProvider: "upstox",
   },
   {
     symbol: "SENSEX",
@@ -118,6 +129,7 @@ export const INSTRUMENTS: Instrument[] = [
       upstox: "BSE_INDEX|SENSEX",
     },
     classificationMethod: "PERCENTAGE",
+    preferredProvider: "upstox",
   },
   {
     symbol: "GOLD",
@@ -178,6 +190,7 @@ export const INSTRUMENTS: Instrument[] = [
       upstox: "NSE_EQ|INF204KB17I5",
     },
     classificationMethod: "PERCENTAGE",
+    preferredProvider: "upstox",
     note: "Nippon India Gold BeES — an NSE-listed gold ETF in INR, tracking domestic gold prices (import duty and GST included). This is NOT the MCX GOLD futures contract: levels here are ETF unit prices (~INR 133), not MCX contract prices. CPR width % is comparable to MCX; BC/P/TC are not.",
   },
   {
@@ -193,6 +206,7 @@ export const INSTRUMENTS: Instrument[] = [
       upstox: "NSE_EQ|INF204KC1402",
     },
     classificationMethod: "PERCENTAGE",
+    preferredProvider: "upstox",
     note: "Nippon India Silver ETF — an NSE-listed silver ETF in INR, tracking domestic silver prices. This is NOT the MCX SILVER futures contract: levels here are ETF unit prices, not MCX contract prices. CPR width % is comparable to MCX; BC/P/TC are not.",
   },
   // ── MCX futures ───────────────────────────────────────────────────────────
@@ -214,6 +228,7 @@ export const INSTRUMENTS: Instrument[] = [
     providerSymbols: {},
     upstoxContract: { exchange: "MCX", root: "GOLD" },
     classificationMethod: "PERCENTAGE",
+    preferredProvider: "upstox",
     note: "MCX GOLD futures in INR per 10 grams — the contract Indian traders actually trade. Requires the Upstox provider; Yahoo has no MCX coverage, so this reports unavailable on the default provider.",
   },
   {
@@ -226,6 +241,7 @@ export const INSTRUMENTS: Instrument[] = [
     providerSymbols: {},
     upstoxContract: { exchange: "MCX", root: "SILVER" },
     classificationMethod: "PERCENTAGE",
+    preferredProvider: "upstox",
     note: "MCX SILVER futures in INR per kilogram. Requires the Upstox provider; Yahoo has no MCX coverage.",
   },
   {
@@ -238,6 +254,7 @@ export const INSTRUMENTS: Instrument[] = [
     providerSymbols: {},
     upstoxContract: { exchange: "MCX", root: "CRUDEOIL" },
     classificationMethod: "PERCENTAGE",
+    preferredProvider: "upstox",
     note: "MCX CRUDEOIL futures in INR per barrel. Requires the Upstox provider; Yahoo has no MCX coverage.",
   },
   {

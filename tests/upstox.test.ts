@@ -64,16 +64,24 @@ function candles(rows: unknown[][]) {
 
 function providerWith(
   historical: unknown,
-  options: { now?: Date; status?: number } = {},
+  options: { now?: Date; status?: number; intraday?: unknown } = {},
 ) {
   const fetchImpl = (async (url: string) => {
-    if (String(url).includes("assets.upstox.com")) {
+    const u = String(url);
+    if (u.includes("assets.upstox.com")) {
       return new Response(gzipSync(Buffer.from(JSON.stringify(MCX_MASTER))), {
         status: 200,
       });
     }
     if (options.status && options.status !== 200) {
       return new Response("{}", { status: options.status });
+    }
+    // The current session comes from the intraday endpoint, not the daily one.
+    if (u.includes("/historical-candle/intraday/")) {
+      return new Response(
+        JSON.stringify(options.intraday ?? candles([])),
+        { status: 200 },
+      );
     }
     return new Response(JSON.stringify(historical), { status: 200 });
   }) as unknown as typeof fetch;
@@ -239,6 +247,60 @@ describe("historical bars", () => {
     await expect(provider.getHistoricalOHLC(request)).rejects.toThrow(
       /Analytics Token/,
     );
+  });
+});
+
+describe("the current session comes from the intraday endpoint", () => {
+  const request = {
+    instrument: requireInstrument("NIFTY50"),
+    start: "2026-08-24" as const,
+    end: "2026-08-25" as const,
+  };
+
+  it("merges today's intraday day-candle with the daily series", async () => {
+    // Measured: at 18:30 IST the daily endpoint's newest candle was the PREVIOUS
+    // session for every instrument type. Today lives on the intraday endpoint.
+    const provider = providerWith(
+      candles([
+        ["2026-08-24T00:00:00+05:30", 24285.05, 24313.0, 24144.3, 24219.05, 0, 0],
+      ]),
+      {
+        intraday: candles([
+          ["2026-08-25T00:00:00+05:30", 24341.95, 24378.6, 24207.75, 24207.75, 0, 0],
+        ]),
+      },
+    );
+    const bars = await provider.getHistoricalOHLC(request);
+    expect(bars.map((b) => b.date)).toEqual(["2026-08-24", "2026-08-25"]);
+    expect(bars[1].high).toBe(24378.6);
+    expect(bars[1].complete).toBe(true);
+  });
+
+  it("prefers the settled daily record when both endpoints have the date", async () => {
+    const provider = providerWith(
+      candles([
+        ["2026-08-25T00:00:00+05:30", 1, 2, 0.5, 1.5, 111, 0],
+      ]),
+      {
+        intraday: candles([
+          ["2026-08-25T00:00:00+05:30", 9, 9, 9, 9, 999, 0],
+        ]),
+      },
+    );
+    const bars = await provider.getHistoricalOHLC(request);
+    expect(bars).toHaveLength(1);
+    expect(bars[0].volume).toBe(111);
+  });
+
+  it("survives the intraday endpoint failing", async () => {
+    const provider = providerWith(
+      candles([
+        ["2026-08-24T00:00:00+05:30", 24285.05, 24313.0, 24144.3, 24219.05, 0, 0],
+      ]),
+      { intraday: { status: "error", errors: [{ message: "boom" }] } },
+    );
+    const bars = await provider.getHistoricalOHLC(request);
+    expect(bars.map((b) => b.date)).toEqual(["2026-08-24"]);
   });
 });
 

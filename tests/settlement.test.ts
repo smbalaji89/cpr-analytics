@@ -20,8 +20,10 @@ import { YahooFinanceProvider } from "@/lib/market-data/providers/yahoo";
  */
 
 const IST = "Asia/Kolkata";
-/** 2026-08-25 15:44 IST — 14 minutes after the 15:30 close. */
+/** 2026-08-25 15:44 IST — 14 minutes after the 15:30 close, inside the delay. */
 const NOW = new Date("2026-08-25T10:14:00Z");
+/** 2026-08-25 16:45 IST — past Yahoo's 60-minute settlement delay. */
+const AFTER_DELAY = new Date("2026-08-25T11:15:00Z");
 const SESSION_END = Math.floor(
   new Date("2026-08-25T10:00:00Z").getTime() / 1000,
 );
@@ -64,7 +66,7 @@ function payload(today: {
   };
 }
 
-function providerReturning(body: unknown) {
+function providerReturning(body: unknown, now: Date = AFTER_DELAY) {
   const fetchImpl = (async () =>
     new Response(JSON.stringify(body), {
       status: 200,
@@ -73,12 +75,12 @@ function providerReturning(body: unknown) {
   return new YahooFinanceProvider({
     fetchImpl,
     revalidateSeconds: 0,
-    now: () => NOW,
+    now: () => now,
   });
 }
 
-async function todayBar(body: unknown) {
-  const bars = await providerReturning(body).getHistoricalOHLC({
+async function todayBar(body: unknown, now: Date = AFTER_DELAY) {
+  const bars = await providerReturning(body, now).getHistoricalOHLC({
     instrument: requireInstrument("NIFTY50"),
     start: "2026-08-24",
     end: "2026-08-25",
@@ -87,6 +89,24 @@ async function todayBar(body: unknown) {
 }
 
 describe("a just-closed bar", () => {
+  it("is INCOMPLETE inside the settlement delay, however coherent", async () => {
+    // Measured on the 2026-08-26 NSE session: shortly after the close Yahoo
+    // read L 24253.60 / C 24266.65 and by 18:15 the same bar read
+    // L 24207.75 / C 24207.75. Coherent throughout — only time distinguishes
+    // the two, so only time can gate it.
+    const bar = await todayBar(
+      payload({
+        open: 24341.95,
+        high: 24378.6,
+        low: 24253.6,
+        close: 24266.65,
+        volume: 0,
+      }),
+      NOW,
+    );
+    expect(bar!.complete).toBe(false);
+  });
+
   it("is COMPLETE when coherent, even with zero volume", async () => {
     // The exact bar observed in production. NSE's own snapshot confirmed these
     // figures to the paisa, so rejecting it would discard correct data.

@@ -22,6 +22,7 @@ import {
 import {
   getCalendar,
   getMarketDataProvider,
+  getProviderForInstrument,
   MarketDataError,
   type MarketDataProvider,
   type SessionBar,
@@ -34,7 +35,7 @@ import type {
   CPRUnavailableReason,
   DataContext,
 } from "@/lib/types";
-import { addDays, type ISODate } from "@/lib/utils/date";
+import { addDays, formatDisplayDate, type ISODate } from "@/lib/utils/date";
 import { after } from "next/server";
 import { cacheGet, cacheSet, TTL } from "./cache";
 import { isWithinRetention, retentionCutoff, retentionDays } from "./retention";
@@ -215,7 +216,10 @@ async function loadLiveSeries(
   end: ISODate,
   options: { fresh?: boolean } = {},
 ): Promise<SeriesResult> {
-  const provider = getMarketDataProvider(
+  // Per instrument, not global: Indian instruments prefer Upstox and fall back
+  // to the configured default when it is unusable.
+  const provider = getProviderForInstrument(
+    instrument,
     options.fresh ? { revalidateSeconds: 0 } : {},
   );
   const calendar = getCalendar(instrument.market);
@@ -368,7 +372,7 @@ export function unsupportedReason(symbol: string): CPRUnavailable | null {
   const instrument = requireInstrument(symbol);
   let provider: MarketDataProvider;
   try {
-    provider = getMarketDataProvider();
+    provider = getProviderForInstrument(instrument);
   } catch {
     return null; // Provider misconfigured entirely — a different problem.
   }
@@ -559,6 +563,30 @@ export async function getCPRForDate(
         lookup: {
           available: false,
           error: { reason: blocked.reason, message: blocked.message },
+        },
+        context: series.context,
+        today,
+      };
+    }
+
+    // Beyond the horizon is NOT missing data: a CPR for day D is derived from
+    // day D-1's completed session, so nothing past one session after the last
+    // settled one can exist yet. Saying "no data available" invites the user to
+    // go looking for a problem that is not there.
+    const furthest = series.records[0]?.tradingDate;
+    if (furthest && tradingDate > furthest) {
+      const waitingOn = calendar.previousTradingDay(tradingDate, false);
+      return {
+        lookup: {
+          available: false,
+          error: {
+            reason: "BEYOND_HORIZON",
+            message:
+              `A CPR for ${formatDisplayDate(tradingDate)} is derived from the ` +
+              `${formatDisplayDate(waitingOn)} session, which has not completed yet. ` +
+              `The furthest date currently available is ${formatDisplayDate(furthest)}.`,
+            suggestedDate: furthest,
+          },
         },
         context: series.context,
         today,

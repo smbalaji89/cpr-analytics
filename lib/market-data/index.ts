@@ -1,4 +1,5 @@
 import { readEnvBool, readEnvOr } from "@/lib/utils/env";
+import type { Instrument } from "@/lib/instruments";
 import { KiteConnectProvider } from "./providers/kite";
 import { MockMarketDataProvider } from "./providers/mock";
 import { UpstoxProvider } from "./providers/upstox";
@@ -20,6 +21,62 @@ export * from "./calendar";
 export interface ProviderFactoryOptions {
   /** 0 disables Next fetch caching — used by the sync job. */
   revalidateSeconds?: number;
+}
+
+/** Provider ids the factory can construct. */
+export type ProviderId = "yahoo" | "upstox" | "kite" | "mock";
+
+function createProvider(
+  id: ProviderId,
+  options: ProviderFactoryOptions,
+): MarketDataProvider {
+  switch (id) {
+    case "upstox":
+      return new UpstoxProvider();
+    case "kite":
+      return new KiteConnectProvider();
+    case "mock":
+      return new MockMarketDataProvider();
+    case "yahoo":
+      return new YahooFinanceProvider({
+        revalidateSeconds: options.revalidateSeconds,
+      });
+  }
+}
+
+/**
+ * The provider to use for ONE instrument.
+ *
+ * An instrument may name a preferred provider — Indian markets prefer Upstox,
+ * which serves exchange data and is the only route to MCX. That preference is
+ * honoured when the provider is actually usable (its credentials exist and it
+ * covers the instrument) and otherwise falls back to the configured default,
+ * so adding `UPSTOX_ACCESS_TOKEN` is the whole migration: nothing else changes,
+ * and removing it degrades rather than breaks.
+ *
+ * The preference is ignored entirely when the default is the mock provider, so
+ * offline development stays offline.
+ */
+export function getProviderForInstrument(
+  instrument: Instrument,
+  options: ProviderFactoryOptions = {},
+): MarketDataProvider {
+  const configured = getMarketDataProvider(options);
+  const preferred = instrument.preferredProvider;
+
+  if (!preferred || preferred === configured.id || configured.isMock) {
+    return configured;
+  }
+
+  try {
+    const candidate = createProvider(preferred as ProviderId, options);
+    if (candidate.supports(instrument)) return candidate;
+  } catch {
+    // Credentials absent or provider misconfigured — fall back silently. The
+    // configured provider still reports PROVIDER_LACKS_INSTRUMENT if it cannot
+    // serve this instrument either, so nothing is hidden.
+  }
+  return configured;
 }
 
 export function getMarketDataProvider(

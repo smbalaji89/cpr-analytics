@@ -39,6 +39,23 @@ export interface MarketDataProvider {
   readonly isMock: boolean;
 
   /**
+   * Minutes after the session close before this source's daily bar can be
+   * trusted as final.
+   *
+   * The session clock alone is NOT sufficient for a delayed feed. Measured on
+   * Yahoo for the 2026-08-26 NSE session: shortly after the 15:30 close its bar
+   * read L 24253.60 / C 24266.65, and by 18:15 the same bar read
+   * L 24207.75 / C 24207.75 — matching NSE's own snapshot exactly. The bar was
+   * internally coherent the whole time, so no coherence check could catch it;
+   * it was simply still moving.
+   *
+   * Computing tomorrow's CPR from that mid-flight bar produced a width of 32.97
+   * where the settled bar gives 56.95 — a different figure and a different
+   * classification. Exchange-sourced providers need only a small buffer.
+   */
+  readonly settlementDelayMinutes: number;
+
+  /**
    * Daily bars for a date range, oldest first.
    *
    * Implementations must return ONLY days the exchange actually produced a

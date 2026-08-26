@@ -80,6 +80,9 @@ export class UpstoxProvider implements MarketDataProvider {
   readonly id = "upstox";
   readonly label = "Upstox (Analytics Token)";
   readonly isMock = false;
+  /** Exchange-sourced, so the daily candle is final shortly after the close.
+   * A small buffer absorbs the exchange's own settlement processing. */
+  readonly settlementDelayMinutes = 10;
 
   private readonly accessToken: string;
   private readonly fetchImpl: typeof fetch;
@@ -184,18 +187,11 @@ export class UpstoxProvider implements MarketDataProvider {
     return rows;
   }
 
-  async getHistoricalOHLC({
-    instrument,
-    start,
-    end,
-  }: HistoricalOHLCRequest): Promise<SessionBar[]> {
-    const key = await this.getResolvedSymbol(instrument);
-    const market = MARKETS[instrument.market];
-
-    // GET /v3/historical-candle/:instrument_key/:unit/:interval/:to_date/:from_date
-    const path =
-      `/v3/historical-candle/${encodeURIComponent(key)}/days/1/${end}/${start}`;
-
+  /** One authenticated GET against the candle API. */
+  private async fetchCandles(
+    path: string,
+    instrument: Instrument,
+  ): Promise<unknown[][]> {
     let response: Response;
     try {
       response = await this.fetchImpl(`${BASE_URL}${path}`, {
@@ -239,19 +235,64 @@ export class UpstoxProvider implements MarketDataProvider {
         { instrumentSymbol: instrument.symbol },
       );
     }
+    return body.data.candles;
+  }
 
+  async getHistoricalOHLC({
+    instrument,
+    start,
+    end,
+  }: HistoricalOHLCRequest): Promise<SessionBar[]> {
+    const key = await this.getResolvedSymbol(instrument);
+    const market = MARKETS[instrument.market];
+    const encoded = encodeURIComponent(key);
     const now = this.now();
-    const todayTz = todayInTimeZone(market.timeZone, now);
+    const today = todayInTimeZone(market.timeZone, now);
+
+    /*
+     * Two endpoints, because the daily series EXCLUDES the current session.
+     *
+     * Measured at 18:30 IST on 2026-08-26, the daily endpoint's newest candle
+     * was 2026-08-25 for every instrument type — indices, NSE equities and MCX
+     * futures alike. Today's session lives on the intraday endpoint instead,
+     * where `days/1` returns it as a single day candle:
+     *
+     *   ["2026-08-26T00:00:00+05:30", 24341.95, 24378.6, 24207.75, 24207.75]
+     *
+     * which matches NSE's own snapshot exactly. Without this the provider would
+     * always be a session behind, and the next day's CPR could never be formed.
+     */
+    const [historical, intraday] = await Promise.all([
+      this.fetchCandles(
+        `/v3/historical-candle/${encoded}/days/1/${end}/${start}`,
+        instrument,
+      ),
+      end >= today
+        ? this.fetchCandles(
+            `/v3/historical-candle/intraday/${encoded}/days/1`,
+            instrument,
+          ).catch(() => [] as unknown[][])
+        : Promise.resolve([] as unknown[][]),
+    ]);
+
+    // Daily first, so it WINS on overlap: once the end-of-day record exists it
+    // is the settled one and the intraday aggregate is superseded.
+    const merged = [...historical, ...intraday];
+    const todayTz = today;
     const sessionOver = hasSessionEnded(
       market.timeZone,
       market.sessionClose,
       now,
+      this.settlementDelayMinutes,
     );
 
     const bars: SessionBar[] = [];
-    for (const candle of body.data.candles) {
+    const seen = new Set<string>();
+    for (const candle of merged) {
       const bar = parseCandle(candle, market.timeZone);
       if (!bar) continue;
+      if (seen.has(bar.date)) continue;
+      seen.add(bar.date);
 
       // Same settlement rule as the other providers: a same-day candle is final
       // once the session has ended AND the candle is internally coherent.
@@ -397,6 +438,7 @@ export function hasSessionEnded(
   timeZone: string,
   sessionClose: string | null,
   now: Date,
+  settlementDelayMinutes = 0,
 ): boolean {
   if (!sessionClose) return false;
   const local = new Intl.DateTimeFormat("en-GB", {
@@ -405,5 +447,8 @@ export function hasSessionEnded(
     minute: "2-digit",
     hour12: false,
   }).format(now);
-  return local >= sessionClose;
+  const [h, m] = sessionClose.split(":").map(Number);
+  const settled = h * 60 + m + settlementDelayMinutes;
+  const [nh, nm] = local.split(":").map(Number);
+  return nh * 60 + nm >= settled;
 }

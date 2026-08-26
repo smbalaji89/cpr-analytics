@@ -85,7 +85,15 @@ export type CPRUnavailableReason =
    * The active provider cannot serve this instrument at all — not a transient
    * failure. MCX contracts under Yahoo, for instance.
    */
-  | "PROVIDER_LACKS_INSTRUMENT";
+  | "PROVIDER_LACKS_INSTRUMENT"
+  /**
+   * The date is further ahead than any CPR can yet be derived for.
+   *
+   * A CPR for day D comes from day D-1's COMPLETED session, so the furthest
+   * date that can exist is one session past the last settled one. Anything
+   * beyond that is not missing data — it is not computable yet.
+   */
+  | "BEYOND_HORIZON";
 
 export interface CPRUnavailable {
   reason: CPRUnavailableReason;

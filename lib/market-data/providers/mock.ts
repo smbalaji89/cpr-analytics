@@ -86,6 +86,8 @@ export class MockMarketDataProvider implements MarketDataProvider {
   readonly id = "mock";
   readonly label = "Mock provider (synthetic development data)";
   readonly isMock = true;
+  /** Synthetic data has no vendor settlement lag. */
+  readonly settlementDelayMinutes = 0;
 
   private readonly now: () => Date;
 

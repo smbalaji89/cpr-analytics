@@ -57,6 +57,8 @@ export class KiteConnectProvider implements MarketDataProvider {
   readonly id = "kite";
   readonly label = "Zerodha Kite Connect";
   readonly isMock = false;
+  /** Exchange-sourced, so the daily candle is final shortly after the close. */
+  readonly settlementDelayMinutes = 10;
 
   private readonly apiKey: string;
   private readonly accessToken: string;
@@ -209,6 +211,7 @@ export class KiteConnectProvider implements MarketDataProvider {
       market.timeZone,
       market.sessionClose,
       now,
+      this.settlementDelayMinutes,
     );
 
     const bars: SessionBar[] = [];
@@ -304,6 +307,7 @@ export function hasSessionEnded(
   timeZone: string,
   sessionClose: string | null,
   now: Date,
+  settlementDelayMinutes = 0,
 ): boolean {
   if (!sessionClose) return false;
   const local = new Intl.DateTimeFormat("en-GB", {
@@ -312,7 +316,10 @@ export function hasSessionEnded(
     minute: "2-digit",
     hour12: false,
   }).format(now);
-  return local >= sessionClose;
+  const [h, m] = sessionClose.split(":").map(Number);
+  const settled = h * 60 + m + settlementDelayMinutes;
+  const [nh, nm] = local.split(":").map(Number);
+  return nh * 60 + nm >= settled;
 }
 
 /** Minimal CSV row splitter that respects quoted fields. */

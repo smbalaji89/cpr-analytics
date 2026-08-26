@@ -11,6 +11,7 @@ import { INSTRUMENTS, requireInstrument } from "@/lib/instruments";
 import {
   getCalendar,
   getMarketDataProvider,
+  getProviderForInstrument,
   type SessionBar,
 } from "@/lib/market-data";
 import { addDays, type ISODate } from "@/lib/utils/date";
@@ -74,8 +75,12 @@ async function syncInstrument(
   try {
     const instrument = requireInstrument(symbol);
     const calendar = getCalendar(instrument.market);
-    // Bypass the fetch cache: a sync that reads a stale window defeats its purpose.
-    const provider = getMarketDataProvider({ revalidateSeconds: 0 });
+    // Bypass the fetch cache: a sync that reads a stale window defeats its
+    // purpose. Routed per instrument so stored rows come from the same source
+    // the reads use.
+    const provider = getProviderForInstrument(instrument, {
+      revalidateSeconds: 0,
+    });
 
     if (provider.isMock) {
       throw new Error(
