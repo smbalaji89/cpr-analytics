@@ -116,3 +116,26 @@ export function formatWeekday(date: ISODate): string {
     weekday: "long",
   }).format(isoToUTC(date));
 }
+
+/**
+ * Constrain a picked date to an inclusive range.
+ *
+ * `min`/`max` on `<input type="date">` are CONSTRAINT VALIDATION only — they
+ * mark the field `:invalid` but never stop a value being set, and nothing here
+ * submits a form, so an out-of-range pick would otherwise navigate straight to
+ * a date that has no data. Desktop pickers grey those days out, which is why
+ * this only showed up on iOS, where the wheel offers every date regardless.
+ * Typing a date bypasses the picker on every platform.
+ *
+ * Returns the clamped date and whether clamping was needed, so the caller can
+ * say why the date moved instead of silently changing it.
+ */
+export function clampToRange(
+  value: ISODate,
+  min: ISODate,
+  max: ISODate,
+): { date: ISODate; clamped: "MIN" | "MAX" | null } {
+  if (value < min) return { date: min, clamped: "MIN" };
+  if (value > max) return { date: max, clamped: "MAX" };
+  return { date: value, clamped: null };
+}
