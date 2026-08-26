@@ -24,6 +24,7 @@ import {
   getMarketDataProvider,
   getProviderForInstrument,
   MarketDataError,
+  providerLabel,
   type MarketDataProvider,
   type SessionBar,
   type TradingCalendar,
@@ -83,13 +84,40 @@ function contextFor(
  * these call sites sit INSIDE error handlers — so the handler itself would
  * crash and take the whole Server Component render down with it, which is
  * exactly the failure this is meant to report.
+ *
+ * The provider NAMED here must be the one that produced the rows on screen,
+ * which is not necessarily the configured default:
+ *
+ *  - instruments route by `preferredProvider`, so NIFTY comes from Upstox
+ *    while the default is still Yahoo; and
+ *  - a stored row records the provider that fetched it, which survives a later
+ *    reroute — so a mixed history is possible and gets named as such.
+ *
+ * Naming the default in either case is a misattribution, and provenance that
+ * cannot be trusted is worse than no provenance line at all.
  */
 function safeContextFor(
   calendar: TradingCalendar,
   fromDatabase: boolean,
+  instrument?: Instrument,
+  records?: readonly { dataSource: string }[],
 ): DataContext {
+  const observed = [...new Set((records ?? []).map((r) => r.dataSource))];
+  if (observed.length > 0) {
+    return {
+      provider: observed.length === 1 ? observed[0] : "mixed",
+      providerLabel: observed.map(providerLabel).join(" + "),
+      isMockData: observed.includes("mock"),
+      holidayCoverage: calendar.holidayCoverage,
+      fromDatabase,
+    };
+  }
+
   try {
-    return contextFor(getMarketDataProvider(), calendar, fromDatabase);
+    const provider = instrument
+      ? getProviderForInstrument(instrument)
+      : getMarketDataProvider();
+    return contextFor(provider, calendar, fromDatabase);
   } catch {
     return {
       provider: "unknown",
@@ -355,7 +383,7 @@ async function getSeriesSafe(
     return {
       records: [],
       unavailable: [],
-      context: safeContextFor(calendar, false),
+      context: safeContextFor(calendar, false, instrument),
     };
   }
 }
@@ -512,7 +540,7 @@ export async function getCPRForDate(
           suggestedDate: retentionCutoff(today),
         },
       },
-      context: safeContextFor(calendar, false),
+      context: safeContextFor(calendar, false, instrument),
       today,
     };
   }
@@ -526,7 +554,7 @@ export async function getCPRForDate(
       if (hit) {
         return {
           lookup: { available: true, record: hit },
-          context: safeContextFor(calendar, true),
+          context: safeContextFor(calendar, true, instrument, [hit]),
           today,
         };
       }
@@ -541,7 +569,7 @@ export async function getCPRForDate(
   if (unsupported) {
     return {
       lookup: { available: false, error: unsupported },
-      context: safeContextFor(calendar, false),
+      context: safeContextFor(calendar, false, instrument),
       today,
     };
   }
@@ -638,7 +666,7 @@ export async function getCPRForDate(
               : "Market data temporarily unavailable. Please try again later.",
         },
       },
-      context: safeContextFor(calendar, false),
+      context: safeContextFor(calendar, false, instrument),
       today,
     };
   }
@@ -711,7 +739,7 @@ export async function getHistory(
       if (stored.length >= days) {
         return {
           records: stored,
-          context: safeContextFor(calendar, true),
+          context: safeContextFor(calendar, true, instrument, stored),
           today,
           totalBeforeFilter: storedUnfiltered?.length ?? stored.length,
         };
@@ -781,7 +809,7 @@ export async function getRangeSeries(
       if (coverage >= expectedSessions && expectedSessions > 0) {
         return {
           records: stored,
-          context: safeContextFor(calendar, true),
+          context: safeContextFor(calendar, true, instrument, stored),
           today,
           totalBeforeFilter: coverage,
         };
@@ -953,6 +981,8 @@ export async function getComparison(
       )
     : rows;
 
+  // The comparison spans several markets and therefore several providers, so
+  // the sources present in the rows are named rather than any single default.
   return {
     rows: filtered,
     totalBeforeFilter: rows.length,
@@ -961,6 +991,8 @@ export async function getComparison(
         requireInstrument(symbols[0] ?? DEFAULT_INSTRUMENT_SYMBOL).market,
       ),
       false,
+      undefined,
+      rows.flatMap((row) => (row.record ? [row.record] : [])),
     ),
   };
 }

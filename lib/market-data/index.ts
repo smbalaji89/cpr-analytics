@@ -26,7 +26,7 @@ export interface ProviderFactoryOptions {
 /** Provider ids the factory can construct. */
 export type ProviderId = "yahoo" | "upstox" | "kite" | "mock";
 
-function createProvider(
+export function createProvider(
   id: ProviderId,
   options: ProviderFactoryOptions,
 ): MarketDataProvider {
@@ -117,4 +117,24 @@ export function getMarketDataProvider(
         `Unknown MARKET_DATA_PROVIDER "${requested}". Supported values: yahoo, upstox, kite, mock.`,
       );
   }
+}
+
+/**
+ * Human-readable name for a provider id, without constructing the provider.
+ *
+ * Stored rows record the provider that produced them, and that may not be the
+ * one currently configured — a row synced under Yahoo stays a Yahoo row after
+ * the instrument is rerouted to Upstox. Instantiating a provider just to read
+ * its label would throw when its credentials are absent, which is precisely
+ * the case where an old row's source most needs naming.
+ */
+export const PROVIDER_LABELS: Record<ProviderId, string> = {
+  yahoo: "Yahoo Finance",
+  upstox: "Upstox (Analytics Token)",
+  kite: "Zerodha Kite Connect",
+  mock: "Mock provider (synthetic development data)",
+};
+
+export function providerLabel(id: string): string {
+  return PROVIDER_LABELS[id as ProviderId] ?? id;
 }

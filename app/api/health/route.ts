@@ -1,8 +1,16 @@
 import { apiSuccess, CACHE } from "@/lib/api/response";
 import { isDatabaseConfigured } from "@/lib/db/client";
 import { countRows } from "@/lib/db/repository";
-import { DEFAULT_INSTRUMENT_SYMBOL, requireInstrument } from "@/lib/instruments";
-import { getCalendar, getMarketDataProvider } from "@/lib/market-data";
+import {
+  DEFAULT_INSTRUMENT_SYMBOL,
+  INSTRUMENTS,
+  requireInstrument,
+} from "@/lib/instruments";
+import {
+  getCalendar,
+  getMarketDataProvider,
+  getProviderForInstrument,
+} from "@/lib/market-data";
 import { addDays } from "@/lib/utils/date";
 import { readEnv } from "@/lib/utils/env";
 
@@ -35,6 +43,12 @@ export async function GET() {
       "DATA_RETENTION_DAYS",
       "unset → defaults to 90",
     ),
+    UPSTOX_ACCESS_TOKEN: readEnv("UPSTOX_ACCESS_TOKEN")
+      ? `set (${readEnv("UPSTOX_ACCESS_TOKEN")!.length} chars) — Indian instruments route to Upstox`
+      : describeBlank(
+          "UPSTOX_ACCESS_TOKEN",
+          "NOT SET — Indian instruments fall back to the default provider, and MCX is unavailable",
+        ),
     KITE_API_KEY: readEnv("KITE_API_KEY") ? "set" : "not set",
     KITE_ACCESS_TOKEN: readEnv("KITE_ACCESS_TOKEN")
       ? "set (expires 6 AM IST daily)"
@@ -117,6 +131,17 @@ export async function GET() {
       deployment,
       config,
       relatedEnvKeysPresent: relatedKeys,
+      /**
+       * Which provider each instrument actually resolves to.
+       *
+       * `provider.id` above is only the DEFAULT. Instruments carry a
+       * preferredProvider and route away from it when that provider's
+       * credentials exist, so the default alone does not tell you where any
+       * given instrument's numbers came from — this does.
+       */
+      routing: Object.fromEntries(
+        INSTRUMENTS.map((i) => [i.symbol, getProviderForInstrument(i).id]),
+      ),
       provider,
       database,
       totalMs: Date.now() - started,

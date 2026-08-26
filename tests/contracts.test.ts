@@ -1,10 +1,16 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import {
   CONTRACT_SPECS,
   generateContractSymbols,
   median,
 } from "@/lib/market-data/contracts";
 import { INSTRUMENTS, requireInstrument } from "@/lib/instruments";
+import {
+  createProvider,
+  getProviderForInstrument,
+  PROVIDER_LABELS,
+  providerLabel,
+} from "@/lib/market-data";
 
 /**
  * Futures contract resolution.
@@ -124,5 +130,58 @@ describe("instrument contract wiring", () => {
         expect(instrument.providerSymbols.yahoo).toBeTruthy();
       }
     }
+  });
+});
+
+describe("provenance names the provider that actually produced the rows", () => {
+  /**
+   * The footer line is the only place a user can see where a number came from.
+   * Naming the configured default is wrong in two ordinary situations: an
+   * instrument routed away from it by `preferredProvider`, and a stored row
+   * fetched before a reroute. Both were shipping "Source: Yahoo Finance" over
+   * Upstox data.
+   */
+  const original = process.env.UPSTOX_ACCESS_TOKEN;
+  afterEach(() => {
+    if (original === undefined) delete process.env.UPSTOX_ACCESS_TOKEN;
+    else process.env.UPSTOX_ACCESS_TOKEN = original;
+  });
+
+  it("keeps PROVIDER_LABELS in step with each provider's own label", () => {
+    process.env.UPSTOX_ACCESS_TOKEN = "test-token";
+    // Kite is omitted: it needs a key AND a token that expires daily, and this
+    // test has no business holding either.
+    for (const id of ["yahoo", "upstox", "mock"] as const) {
+      expect(createProvider(id, {}).label).toBe(PROVIDER_LABELS[id]);
+    }
+  });
+
+  it("labels an unknown id as itself rather than throwing", () => {
+    expect(providerLabel("something-else")).toBe("something-else");
+  });
+
+  it("routes the Indian instruments to Upstox once a token exists", () => {
+    process.env.UPSTOX_ACCESS_TOKEN = "test-token";
+    for (const symbol of ["NIFTY50", "BANKNIFTY", "SENSEX", "GOLD_MCX"]) {
+      expect(getProviderForInstrument(requireInstrument(symbol)).id).toBe(
+        "upstox",
+      );
+    }
+  });
+
+  it("leaves the global instruments on the configured default", () => {
+    process.env.UPSTOX_ACCESS_TOKEN = "test-token";
+    for (const symbol of ["GOLD", "SILVER", "CRUDEOIL", "BTC"]) {
+      expect(getProviderForInstrument(requireInstrument(symbol)).id).toBe(
+        "yahoo",
+      );
+    }
+  });
+
+  it("falls back to the default when the preferred provider has no token", () => {
+    delete process.env.UPSTOX_ACCESS_TOKEN;
+    expect(getProviderForInstrument(requireInstrument("NIFTY50")).id).toBe(
+      "yahoo",
+    );
   });
 });
