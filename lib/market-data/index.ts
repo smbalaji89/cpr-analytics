@@ -1,6 +1,5 @@
 import { readEnvBool, readEnvOr } from "@/lib/utils/env";
 import type { Instrument } from "@/lib/instruments";
-import { KiteConnectProvider } from "./providers/kite";
 import { MockMarketDataProvider } from "./providers/mock";
 import { UpstoxProvider } from "./providers/upstox";
 import { YahooFinanceProvider } from "./providers/yahoo";
@@ -24,7 +23,7 @@ export interface ProviderFactoryOptions {
 }
 
 /** Provider ids the factory can construct. */
-export type ProviderId = "yahoo" | "upstox" | "kite" | "mock";
+export type ProviderId = "yahoo" | "upstox" | "mock";
 
 export function createProvider(
   id: ProviderId,
@@ -33,8 +32,6 @@ export function createProvider(
   switch (id) {
     case "upstox":
       return new UpstoxProvider();
-    case "kite":
-      return new KiteConnectProvider();
     case "mock":
       return new MockMarketDataProvider();
     case "yahoo":
@@ -102,11 +99,6 @@ export function getMarketDataProvider(
       // Analytics Token: free, one-year validity, read-only, MCX included.
       return new UpstoxProvider();
 
-    case "kite":
-      // Throws with actionable guidance when credentials are absent or the
-      // access token has expired, which it does every day at 6 AM IST.
-      return new KiteConnectProvider();
-
     case "yahoo":
       return new YahooFinanceProvider({
         revalidateSeconds: options.revalidateSeconds,
@@ -114,7 +106,7 @@ export function getMarketDataProvider(
 
     default:
       throw new Error(
-        `Unknown MARKET_DATA_PROVIDER "${requested}". Supported values: yahoo, upstox, kite, mock.`,
+        `Unknown MARKET_DATA_PROVIDER "${requested}". Supported values: yahoo, upstox, mock.`,
       );
   }
 }
@@ -131,7 +123,6 @@ export function getMarketDataProvider(
 export const PROVIDER_LABELS: Record<ProviderId, string> = {
   yahoo: "Yahoo Finance",
   upstox: "Upstox (Analytics Token)",
-  kite: "Zerodha Kite Connect",
   mock: "Mock provider (synthetic development data)",
 };
 

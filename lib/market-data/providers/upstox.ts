@@ -17,12 +17,13 @@ import {
  * This is the provider to prefer for Indian instruments. Measured against the
  * alternatives:
  *
- *   | | Yahoo | Kite | Upstox Analytics |
- *   | token upkeep | none | **daily** manual login | **1 year** |
- *   | cost | free | paid add-on | **free** |
- *   | MCX | **none (404)** | yes | **yes** |
- *   | instrument list | n/a | needs auth | **public, no auth** |
- *   | order risk | n/a | full trading scope | **read-only** |
+ *   | | Yahoo | Upstox Analytics |
+ *   | token upkeep | none | **1 year** |
+ *   | cost | free | **free** |
+ *   | MCX | **none (404)** | **yes** |
+ *   | settlement | ~hours after close | **at the close** |
+ *   | instrument list | n/a | **public, no auth** |
+ *   | order risk | n/a | **read-only** |
  *
  * The Analytics Token is generated from the Developer Apps dashboard with no
  * OAuth redirect, is valid for a year, and is strictly read-only — it cannot

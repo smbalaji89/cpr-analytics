@@ -7,6 +7,7 @@ import {
 import { INSTRUMENTS, requireInstrument } from "@/lib/instruments";
 import {
   createProvider,
+  getMarketDataProvider,
   getProviderForInstrument,
   PROVIDER_LABELS,
   providerLabel,
@@ -142,18 +143,29 @@ describe("provenance names the provider that actually produced the rows", () => 
    * Upstox data.
    */
   const original = process.env.UPSTOX_ACCESS_TOKEN;
+  const originalProvider = process.env.MARKET_DATA_PROVIDER;
   afterEach(() => {
     if (original === undefined) delete process.env.UPSTOX_ACCESS_TOKEN;
     else process.env.UPSTOX_ACCESS_TOKEN = original;
+    if (originalProvider === undefined) delete process.env.MARKET_DATA_PROVIDER;
+    else process.env.MARKET_DATA_PROVIDER = originalProvider;
   });
 
   it("keeps PROVIDER_LABELS in step with each provider's own label", () => {
     process.env.UPSTOX_ACCESS_TOKEN = "test-token";
-    // Kite is omitted: it needs a key AND a token that expires daily, and this
-    // test has no business holding either.
     for (const id of ["yahoo", "upstox", "mock"] as const) {
       expect(createProvider(id, {}).label).toBe(PROVIDER_LABELS[id]);
     }
+  });
+
+  it("names only the providers that still exist when the value is bad", () => {
+    // Kite was removed; an error that still advertised it would send someone
+    // to configure a provider that is not there.
+    process.env.MARKET_DATA_PROVIDER = "kite";
+    expect(() => getMarketDataProvider()).toThrow(
+      /Supported values: yahoo, upstox, mock/,
+    );
+    expect(() => getMarketDataProvider()).toThrow(/Unknown MARKET_DATA_PROVIDER/);
   });
 
   it("labels an unknown id as itself rather than throwing", () => {

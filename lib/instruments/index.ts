@@ -76,7 +76,7 @@ export interface Instrument {
    * the configured default when no Upstox token is present, so the migration is
    * literally just setting `UPSTOX_ACCESS_TOKEN`.
    */
-  preferredProvider?: "upstox" | "kite" | "yahoo";
+  preferredProvider?: "upstox" | "yahoo";
   /**
    * Disclosure shown in the UI where the tradeable contract differs from what a
    * user might assume from the name. Never leave a mismatch implicit.
@@ -108,7 +108,6 @@ export const INSTRUMENTS: Instrument[] = [
     currency: "INR",
     providerSymbols: {
       yahoo: "^NSEI",
-      kite: "NSE:NIFTY 50",
       upstox: "NSE_INDEX|Nifty 50",
     },
     classificationMethod: "POINTS",
@@ -123,7 +122,6 @@ export const INSTRUMENTS: Instrument[] = [
     currency: "INR",
     providerSymbols: {
       yahoo: "^NSEBANK",
-      kite: "NSE:NIFTY BANK",
       upstox: "NSE_INDEX|Nifty Bank",
     },
     classificationMethod: "PERCENTAGE",
@@ -138,7 +136,6 @@ export const INSTRUMENTS: Instrument[] = [
     currency: "INR",
     providerSymbols: {
       yahoo: "^BSESN",
-      kite: "BSE:SENSEX",
       upstox: "BSE_INDEX|SENSEX",
     },
     classificationMethod: "PERCENTAGE",

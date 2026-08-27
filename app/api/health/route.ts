@@ -49,10 +49,6 @@ export async function GET() {
           "UPSTOX_ACCESS_TOKEN",
           "NOT SET — Indian instruments fall back to the default provider, and MCX is unavailable",
         ),
-    KITE_API_KEY: readEnv("KITE_API_KEY") ? "set" : "not set",
-    KITE_ACCESS_TOKEN: readEnv("KITE_ACCESS_TOKEN")
-      ? "set (expires 6 AM IST daily)"
-      : "not set",
     NODE_ENV: process.env.NODE_ENV,
     VERCEL_REGION: process.env.VERCEL_REGION ?? "(not on Vercel)",
   };
@@ -80,7 +76,7 @@ export async function GET() {
    * but under a misspelled key, so the app never reads it.
    */
   const relatedKeys = Object.keys(process.env)
-    .filter((k) => /CRON|SECRET|DATABASE|MARKET|RETENTION|SUPABASE|KITE/i.test(k))
+    .filter((k) => /CRON|SECRET|DATABASE|MARKET|RETENTION|SUPABASE|UPSTOX/i.test(k))
     .sort();
 
   // ── Market data ──────────────────────────────────────────────────────────

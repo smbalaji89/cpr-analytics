@@ -62,10 +62,8 @@ variable is prefixed `NEXT_PUBLIC_`, and every one is read only in server code.
 | --- | --- | --- |
 | `DATABASE_URL` | No | Postgres connection string (Supabase **transaction pooler**, port 6543). Omit to run in live-compute mode. |
 | `DIRECT_DATABASE_URL` | For migrations | Supabase **direct** string (port 5432). Used by `db:migrate` only. |
-| `MARKET_DATA_PROVIDER` | No | `yahoo` (default), `upstox`, `kite`, or `mock`. |
+| `MARKET_DATA_PROVIDER` | No | `yahoo` (default), `upstox`, or `mock`. The DEFAULT only — instruments may route elsewhere. |
 | `UPSTOX_ACCESS_TOKEN` | For Indian data | Analytics Token — free, valid 1 year, read-only. Set it and Indian instruments switch to Upstox automatically. |
-| `KITE_API_KEY` | For `kite` | Zerodha Kite Connect API key. |
-| `KITE_ACCESS_TOKEN` | For `kite` | Expires 6 AM IST daily; needs manual renewal. |
 | `MARKET_DATA_API_KEY` | No | Reserved for providers that authenticate. Yahoo needs none. |
 | `ALLOW_MOCK_PROVIDER_IN_PRODUCTION` | No | Escape hatch; see below. |
 | `CRON_SECRET` | For cron | Protects the sync/cleanup/admin endpoints. |
@@ -167,13 +165,14 @@ the `=F` alias: showing a range understated by up to 58 % is worse than showing
 
 Driven by an **Analytics Token**, which is the piece that makes this practical:
 
-| | Yahoo | Kite | **Upstox Analytics** |
-| --- | --- | --- | --- |
-| Token upkeep | none | **daily** manual login | **once a year** |
-| Cost | free | paid add-on | **free** |
-| MCX | **none — all symbols 404** | yes | **yes** |
-| Instrument list | n/a | needs auth | **public, no auth** |
-| Order risk if leaked | n/a | full trading scope | **read-only** |
+| | Yahoo | **Upstox Analytics** |
+| --- | --- | --- |
+| Token upkeep | none | **once a year** |
+| Cost | free | **free** |
+| MCX | **none — all symbols 404** | **yes** |
+| Settlement | ~hours after the close | **at the close** |
+| Instrument list | n/a | **public, no auth** |
+| Order risk if leaked | n/a | **read-only** |
 
 The Analytics Token is generated from the Developer Apps dashboard (Analytics
 tab) with no OAuth redirect, is valid for a year, and cannot place, modify or
@@ -242,56 +241,11 @@ The instrument keys shipped for the NSE/BSE instruments (`NSE_INDEX|Nifty 50`,
 `NSE_INDEX|Nifty Bank`, `BSE_INDEX|SENSEX`, `NSE_EQ|INF204KB17I5`,
 `NSE_EQ|INF204KC1402`) were read from that public master rather than guessed.
 
-### `kite` (Zerodha Kite Connect — MCX, but daily token renewal)
+#### Adding an MCX instrument
 
-Exchange-sourced Indian data. Fixes the two things Yahoo structurally cannot:
-
-**Settlement latency.** Yahoo publishes a settled daily bar hours after the
-close — measured 32 minutes after the 2026-08-25 NSE close, its bar still
-carried volume 0 and a close exactly equal to the high, so the next session's
-CPR could not be computed. Kite serves the exchange's own candles, so a session
-is final when the session is.
-
-**MCX.** Yahoo has no MCX coverage — every MCX symbol returns 404. Kite reaches
-MCX futures directly, so Gold/Silver/Crude can be the contracts Indian traders
-actually trade rather than COMEX proxies in USD.
-
-#### The catch, before you commit to it
-
-**The access token expires at 6 AM IST every day** and can only be regenerated
-through an interactive browser login. This is a regulatory requirement, not an
-API limitation — no server-side code can refresh it unattended. A deployment on
-`kite` therefore needs a **daily manual step**, or it goes dark each morning
-until someone supplies a new token.
-
-The provider fails loudly rather than silently when that happens: a `403`
-produces "Kite access token is invalid or has expired…", and the app falls back
-to its "market data temporarily unavailable" state rather than showing stale
-figures.
-
-The historical data API is also a **paid add-on** on top of the Kite Connect
-subscription.
-
-#### Setup
-
-1. Create an app at [developers.kite.trade](https://developers.kite.trade) and
-   subscribe to the **Historical Data** add-on.
-2. Complete the login flow to obtain an `access_token`
-   ([docs](https://kite.trade/docs/connect/v3/user/)).
-3. Set the variables and switch the provider:
-
-```bash
-MARKET_DATA_PROVIDER=kite
-KITE_API_KEY=your_api_key
-KITE_ACCESS_TOKEN=token_from_todays_login
-```
-
-4. Verify with `/api/health` — `provider.id` should read `kite` and
-   `provider.ok` be `true`.
-
-#### Adding MCX instruments
-
-Once Kite is working, MCX contracts are a registry entry with a `kite` symbol:
+MCX contracts are a registry entry with an `upstoxContract` — no expiry is
+hardcoded, because the provider resolves the nearest sufficiently-distant one
+from the public instrument master and the series rolls itself:
 
 ```ts
 {
@@ -300,20 +254,19 @@ Once Kite is working, MCX contracts are a registry entry with a `kite` symbol:
   category: "COMMODITIES_IN",
   market: "MCX",
   currency: "INR",
-  providerSymbols: { kite: "MCX:GOLDM26DECFUT" },
+  providerSymbols: {},
+  upstoxContract: { exchange: "MCX", root: "GOLD" },
+  preferredProvider: "upstox",
   classificationMethod: "PERCENTAGE",
 }
 ```
 
-MCX futures trading symbols embed the expiry, so they roll each contract cycle.
-When a symbol stops resolving the provider lists the closest live matches from
-the instruments dump, which tells you the new one.
-
-> The `kite` symbols shipped for the existing NSE/BSE instruments
-> (`NSE:NIFTY 50`, `NSE:NIFTY BANK`, `BSE:SENSEX`) follow Kite's documented
-> naming but have **not** been
-> verified against a live instruments dump — that needs credentials. If one does
-> not resolve, the error names the closest matches.
+MCX lists a size ladder against the same underlying price — `GOLD` (1 kg),
+`GOLDM` (100 g), `GOLDGUINEA` (8 g), `GOLDPETAL` (1 g); `SILVER` (30 kg),
+`SILVERM` (5 kg), `SILVERMIC` (1 kg); `CRUDEOIL` (100 bbl), `CRUDEOILM` (10
+bbl). **The CPR levels are identical across a ladder** — only the value of a
+point differs — so switching contract size means changing `root` and nothing
+else.
 
 ### `mock` (development only)
 
@@ -923,7 +876,6 @@ set RUN_LIVE_TESTS=1 && npm test               :: cmd.exe
 | `tests/env.test.ts` | Blank environment variables behave exactly like unset ones |
 | `tests/settings-actions.test.ts` | Admin actions always resolve, authorise correctly, never echo the secret |
 | `tests/settlement.test.ts` | A just-closed bar must be proven settled, not merely past its session clock |
-| `tests/kite.test.ts` | Kite candle parsing, instrument lookup, session-end detection, expired-token handling |
 | `tests/upstox.test.ts` | Upstox candle parsing, instrument master decoding, futures roll selection, MCX wiring |
 | `tests/contracts.test.ts` | Futures month-code generation, year rollover, liquidity ranking |
 | `tests/db-fallback.test.ts` | Database read path: sufficiency, merge, failure fallback, no mock persistence |

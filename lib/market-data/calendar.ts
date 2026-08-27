@@ -47,7 +47,7 @@ export interface MarketDefinition {
    * Regular session close, `HH:MM` in the market's own timezone.
    *
    * Only needed by providers that do not return session metadata of their own.
-   * Yahoo supplies `currentTradingPeriod`, so it ignores this; Kite's historical
+   * Yahoo supplies `currentTradingPeriod`, so it ignores this; Upstox's historical
    * API returns bare candles, so it needs to be told when a session has ended
    * before it can judge a same-day candle complete.
    *
