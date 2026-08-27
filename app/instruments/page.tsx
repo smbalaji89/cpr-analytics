@@ -18,8 +18,13 @@ import {
 } from "@/components/ui/card";
 import { TableSkeleton } from "@/components/ui/skeleton";
 import { parseCategoryFilter, type CategoryFilter } from "@/lib/cpr/filter";
-import { DEFAULT_INSTRUMENT_SYMBOL, instrumentsByCategory } from "@/lib/instruments";
+import {
+  DEFAULT_INSTRUMENT_SYMBOL,
+  INSTRUMENTS,
+  instrumentsByCategory,
+} from "@/lib/instruments";
 import { MARKETS } from "@/lib/market-data/calendar";
+import { getProviderForInstrument } from "@/lib/market-data";
 import {
   getComparison,
   getDefaultTradingDate,
@@ -56,15 +61,15 @@ export default async function InstrumentsPage({ searchParams }: PageProps) {
             Instruments
           </h1>
           <p className="mt-0.5 text-sm text-ink-muted">
-            CPR width comparison across every tracked instrument, plus the
-            calendar each one follows.
+            CPR width across all {INSTRUMENTS.length} tracked instruments, plus
+            the calendar and data source each one follows.
           </p>
         </div>
 
         <Suspense
           fallback={
             <Card>
-              <TableSkeleton rows={7} />
+              <TableSkeleton rows={INSTRUMENTS.length} />
             </Card>
           }
         >
@@ -84,7 +89,8 @@ async function ComparisonSection({
   date?: ISODate;
   categories: CategoryFilter;
 }) {
-  const target = date ?? (await getDefaultTradingDate(DEFAULT_INSTRUMENT_SYMBOL));
+  const target =
+    date ?? (await getDefaultTradingDate(DEFAULT_INSTRUMENT_SYMBOL));
 
   if (!target) {
     return (
@@ -149,6 +155,14 @@ function InstrumentRegistry() {
           <ul className="divide-y divide-line px-4 pb-2 sm:px-5">
             {group.instruments.map((instrument) => {
               const market = MARKETS[instrument.market];
+              // Resolved per instrument, not the configured default: the
+              // Indian instruments route to Upstox while the default is Yahoo.
+              let source: string;
+              try {
+                source = getProviderForInstrument(instrument).label;
+              } catch {
+                source = "provider not configured";
+              }
               return (
                 <li key={instrument.symbol} className="py-3">
                   <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -159,7 +173,8 @@ function InstrumentRegistry() {
                       {market.label} · {instrument.currency} ·{" "}
                       {market.tradesWeekends
                         ? "trades 24/7"
-                        : "weekdays, exchange holidays excluded"}
+                        : "weekdays, exchange holidays excluded"}{" "}
+                      · {source}
                     </span>
                   </div>
                   {instrument.note ? (

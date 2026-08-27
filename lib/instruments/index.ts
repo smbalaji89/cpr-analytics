@@ -256,9 +256,6 @@ export function requireInstrument(symbol: string): Instrument {
   return instrument;
 }
 
-export function getDefaultInstrument(): Instrument {
-  return requireInstrument(DEFAULT_INSTRUMENT_SYMBOL);
-}
 
 /** Instruments grouped for the selector, in display order. */
 export function instrumentsByCategory(): {

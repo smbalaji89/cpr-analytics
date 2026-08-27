@@ -10,11 +10,12 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { PERCENT_BANDS, POINTS_BANDS } from "@/lib/cpr/classification";
+import { INSTRUMENTS } from "@/lib/instruments";
 import {
-  PERCENT_BANDS,
-  POINTS_BANDS,
-} from "@/lib/cpr/classification";
-import { getMarketDataProvider } from "@/lib/market-data";
+  getMarketDataProvider,
+  getProviderForInstrument,
+} from "@/lib/market-data";
 import { getDatabaseStatus } from "@/lib/services/db-status";
 import { retentionDays } from "@/lib/services/retention";
 import { hasEnv } from "@/lib/utils/env";
@@ -37,7 +38,7 @@ function StatusRow({
 }: {
   label: string;
   ok: boolean;
-  detail: string;
+  detail: React.ReactNode;
 }) {
   return (
     <li className="flex items-start gap-3 py-3">
@@ -75,6 +76,31 @@ export default async function SettingsPage() {
   } catch (error) {
     providerError = error instanceof Error ? error.message : String(error);
   }
+
+  /**
+   * Which provider each instrument actually resolves to.
+   *
+   * Naming the configured default alone was wrong here for the same reason it
+   * was wrong in the page footer: instruments route by `preferredProvider`, so
+   * most of the Indian ones come from Upstox while the default is still Yahoo.
+   */
+  const routing = new Map<string, string[]>();
+  for (const instrument of INSTRUMENTS) {
+    try {
+      const id = getProviderForInstrument(instrument).label;
+      routing.set(id, [...(routing.get(id) ?? []), instrument.shortName]);
+    } catch {
+      routing.set("Not configured", [
+        ...(routing.get("Not configured") ?? []),
+        instrument.shortName,
+      ]);
+    }
+  }
+
+  const pointsInstruments = INSTRUMENTS.filter(
+    (i) => i.classificationMethod === "POINTS",
+  ).map((i) => i.name);
+  const percentCount = INSTRUMENTS.length - pointsInstruments.length;
 
   const cronConfigured = hasEnv("CRON_SECRET");
 
@@ -115,14 +141,26 @@ export default async function SettingsPage() {
             <CardContent className="pt-1">
               <ul className="divide-y divide-line">
                 <StatusRow
-                  label="Market data provider"
+                  label="Market data"
                   ok={!providerError && !providerIsMock}
                   detail={
-                    providerError
-                      ? providerError
-                      : providerIsMock
-                        ? `${providerLabel} — SYNTHETIC data. Set MARKET_DATA_PROVIDER=yahoo for real prices.`
-                        : `${providerLabel} — live market data.`
+                    providerError ? (
+                      providerError
+                    ) : providerIsMock ? (
+                      `${providerLabel} — SYNTHETIC data. Set MARKET_DATA_PROVIDER=yahoo for real prices.`
+                    ) : (
+                      <ul className="space-y-0.5">
+                        {[...routing.entries()].map(([label, symbols]) => (
+                          <li key={label}>
+                            <span className="font-medium text-ink">
+                              {label}
+                            </span>
+                            {" — "}
+                            {symbols.join(", ")}
+                          </li>
+                        ))}
+                      </ul>
+                    )
                   }
                 />
                 <StatusRow
@@ -153,7 +191,9 @@ export default async function SettingsPage() {
             <CardHeader>
               <CardTitle>Stored history</CardTitle>
               <CardDescription>
-                What each instrument currently holds in the database.
+                What each instrument holds in the database. {retentionDays()}{" "}
+                days are kept; a scheduled job removes anything older each day,
+                and the date picker will not go outside that window.
               </CardDescription>
             </CardHeader>
             <CardContent className="pt-3">
@@ -168,10 +208,19 @@ export default async function SettingsPage() {
                     deployments and history beyond the provider&rsquo;s window.
                   </p>
                   <p>
-                    Set <code className="rounded bg-surface-muted px-1 py-0.5">DATABASE_URL</code>,
-                    run <code className="rounded bg-surface-muted px-1 py-0.5">npm run db:migrate</code>,
-                    then verify with{" "}
-                    <code className="rounded bg-surface-muted px-1 py-0.5">npm run db:check</code>.
+                    Set{" "}
+                    <code className="rounded bg-surface-muted px-1 py-0.5">
+                      DATABASE_URL
+                    </code>
+                    , run{" "}
+                    <code className="rounded bg-surface-muted px-1 py-0.5">
+                      npm run db:migrate
+                    </code>
+                    , then verify with{" "}
+                    <code className="rounded bg-surface-muted px-1 py-0.5">
+                      npm run db:check
+                    </code>
+                    .
                   </p>
                 </div>
               ) : dbStatus.reachable === false ? (
@@ -206,7 +255,9 @@ export default async function SettingsPage() {
             <CardHeader>
               <CardTitle>Classification thresholds</CardTitle>
               <CardDescription>
-                Both methods run on every session and both are always reported.
+                Both methods run on every session and both are always reported;
+                which one <em>decides</em> the category depends on the
+                instrument.
               </CardDescription>
             </CardHeader>
             <CardContent className="pt-3">
@@ -215,15 +266,20 @@ export default async function SettingsPage() {
                   <h3 className="text-xs font-semibold uppercase tracking-wide text-ink-muted">
                     By width (points)
                   </h3>
+                  <p className="mt-1 text-xs text-ink-muted">
+                    Decides: {pointsInstruments.join(", ")}
+                  </p>
                   <ul className="numeric mt-2 space-y-1 text-sm text-ink">
                     <li>
                       {POINTS_BANDS.min}–{POINTS_BANDS.narrowMax} · Narrow
                     </li>
                     <li>
-                      {POINTS_BANDS.narrowMax + 1}–{POINTS_BANDS.mixedMax} · Mixed
+                      {POINTS_BANDS.narrowMax + 1}–{POINTS_BANDS.mixedMax} ·
+                      Mixed
                     </li>
                     <li>
-                      {POINTS_BANDS.mixedMax + 1}–{POINTS_BANDS.widerMax} · Wider
+                      {POINTS_BANDS.mixedMax + 1}–{POINTS_BANDS.widerMax} ·
+                      Wider
                     </li>
                     <li className="text-ink-muted">
                       outside · reported out of range
@@ -234,12 +290,17 @@ export default async function SettingsPage() {
                   <h3 className="text-xs font-semibold uppercase tracking-wide text-ink-muted">
                     By width %
                   </h3>
+                  <p className="mt-1 text-xs text-ink-muted">
+                    Decides: every other instrument ({percentCount} of{" "}
+                    {INSTRUMENTS.length})
+                  </p>
                   <ul className="numeric mt-2 space-y-1 text-sm text-ink">
                     <li>
                       {PERCENT_BANDS.min}–{PERCENT_BANDS.narrowMax}% · Narrow
                     </li>
                     <li>
-                      {PERCENT_BANDS.narrowMax}–{PERCENT_BANDS.widerMin}% · Mixed
+                      {PERCENT_BANDS.narrowMax}–{PERCENT_BANDS.widerMin}% ·
+                      Mixed
                     </li>
                     <li>≥ {PERCENT_BANDS.widerMin}% · Wider</li>
                     <li className="text-ink-muted">
@@ -249,24 +310,12 @@ export default async function SettingsPage() {
                 </div>
               </div>
               <p className="mt-4 text-xs leading-relaxed text-ink-muted">
-                When the two methods disagree the result is reported as
-                MIXED / CONFLICTING rather than one being chosen silently. When
-                only one method applies, the verdict says which one governed.
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Data retention</CardTitle>
-            </CardHeader>
-            <CardContent className="pt-3">
-              <p className="text-sm text-ink">
-                {retentionDays()} days of CPR history are kept.
-              </p>
-              <p className="mt-1.5 text-xs leading-relaxed text-ink-muted">
-                A scheduled job removes anything older each day, and the date
-                picker will not offer a date outside the window.
+                The points bands were calibrated for a NIFTY-scale index and do
+                not transfer — Crude Oil near 85 produces a CPR under one point,
+                below the scale entirely, while Bitcoin routinely exceeds 200.
+                Width % divides by the pivot, so it holds at any price scale.
+                When the two disagree the result is reported as MIXED /
+                CONFLICTING rather than one being chosen silently.
               </p>
             </CardContent>
           </Card>

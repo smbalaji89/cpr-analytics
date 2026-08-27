@@ -3,8 +3,9 @@
 Central Pivot Range analytics for Indian indices, commodities and crypto. Shows
 the next trading day's CPR by default, the last 10 sessions, any date within a
 90-day window, width in points and percent, dual classification, R1–R5 / S1–S5,
-and cross-instrument comparison. Nine instruments across Indian indices,
-global (USD) and Indian (INR) commodities, and crypto.
+and cross-instrument comparison. Ten instruments, all derivatives or indices
+with a listed F&O market: three Indian indices, three COMEX/NYMEX contracts,
+three MCX contracts, and bitcoin.
 
 Next.js 15 (App Router) · TypeScript · Tailwind CSS v4 · Recharts · Drizzle ORM ·
 Postgres (Supabase) · Vitest. Deploys to Vercel.
