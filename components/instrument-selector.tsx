@@ -4,10 +4,7 @@ import * as Select from "@radix-ui/react-select";
 import { Check, ChevronDown } from "lucide-react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { useTransition } from "react";
-import {
-  instrumentsByCategory,
-  type Instrument,
-} from "@/lib/instruments";
+import { instrumentsByCategory, type Instrument } from "@/lib/instruments";
 import { cn } from "@/lib/utils/cn";
 
 /**
@@ -16,9 +13,16 @@ import { cn } from "@/lib/utils/cn";
  * Selection lives in the URL so a view is shareable and the back button works.
  * Changing it navigates, and the server re-renders with the new data.
  *
- * The trading DATE is intentionally dropped on change: instruments have
- * different calendars, so carrying a NIFTY date onto a COMEX instrument can
- * land on a non-session. Clearing it re-resolves that instrument's own default.
+ * The trading DATE is CARRIED ACROSS a change. Comparing the same session on
+ * two instruments is the ordinary reason to switch, so discarding the date and
+ * jumping back to the latest session threw away the thing being looked at.
+ *
+ * Calendars do differ, so the carried date is occasionally not a session for
+ * the new instrument — an Indian holiday that COMEX trades, or an MCX evening
+ * session that puts its horizon a day ahead. That case is handled where it
+ * belongs, on the server: the card says the market was closed or the session
+ * has not completed, and offers the nearest available date as a link. Being
+ * told why beats being silently relocated.
  */
 export function InstrumentSelector({
   value,
@@ -40,7 +44,6 @@ export function InstrumentSelector({
   function onChange(next: string) {
     const params = new URLSearchParams(searchParams.toString());
     params.set("instrument", next);
-    params.delete("date");
     startTransition(() => router.push(`${pathname}?${params.toString()}`));
   }
 
@@ -58,7 +61,10 @@ export function InstrumentSelector({
           <Select.Value placeholder="Select instrument" />
         </span>
         <Select.Icon>
-          <ChevronDown className="h-4 w-4 shrink-0 text-ink-muted" aria-hidden />
+          <ChevronDown
+            className="h-4 w-4 shrink-0 text-ink-muted"
+            aria-hidden
+          />
         </Select.Icon>
       </Select.Trigger>
 

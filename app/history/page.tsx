@@ -63,7 +63,9 @@ export default async function HistoryPage({ searchParams }: PageProps) {
 
   const symbol = (
     getInstrument(
-      (firstParam(params, "instrument") ?? DEFAULT_INSTRUMENT_SYMBOL).toUpperCase(),
+      (
+        firstParam(params, "instrument") ?? DEFAULT_INSTRUMENT_SYMBOL
+      ).toUpperCase(),
     ) ?? getInstrument(DEFAULT_INSTRUMENT_SYMBOL)!
   ).symbol;
 
@@ -206,8 +208,7 @@ async function HistoryContent({
     getRangeSeries(symbol, start, today, categories),
   ]);
 
-  const buildHref = (value: number) =>
-    `/history?${baseQuery}&days=${value}`;
+  const buildHref = (value: number) => `/history?${baseQuery}&days=${value}`;
 
   return (
     <div className="mt-4 space-y-4">
@@ -225,6 +226,11 @@ async function HistoryContent({
             instrumentName={instrument.name}
             tradingDate={activeDate}
             error={lookup.error}
+            suggestedHref={
+              lookup.error.suggestedDate
+                ? `/history?instrument=${symbol}&date=${lookup.error.suggestedDate}`
+                : undefined
+            }
           />
         )}
 

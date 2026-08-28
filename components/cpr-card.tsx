@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { AlertTriangle, ArrowLeftRight, Info } from "lucide-react";
 import {
   ClassificationBadge,
@@ -23,10 +24,13 @@ export function CPRUnavailableCard({
   instrumentName,
   tradingDate,
   error,
+  suggestedHref,
 }: {
   instrumentName: string;
   tradingDate: string;
   error: CPRUnavailable;
+  /** Where "nearest available trading date" should go. */
+  suggestedHref?: string;
 }) {
   return (
     <Card className="p-5">
@@ -44,9 +48,18 @@ export function CPRUnavailableCard({
           {error.suggestedDate ? (
             <p className="mt-3 text-xs text-ink-muted">
               Nearest available trading date:{" "}
-              <span className="font-medium text-brand">
-                {formatDisplayDate(error.suggestedDate)}
-              </span>
+              {suggestedHref ? (
+                <Link
+                  href={suggestedHref}
+                  className="font-medium text-brand underline underline-offset-2 hover:no-underline"
+                >
+                  {formatDisplayDate(error.suggestedDate)}
+                </Link>
+              ) : (
+                <span className="font-medium text-brand">
+                  {formatDisplayDate(error.suggestedDate)}
+                </span>
+              )}
             </p>
           ) : null}
         </div>
@@ -116,8 +129,8 @@ export function CPRCard({
           <p className="mt-2.5 flex items-start gap-1.5 px-1 text-xs leading-relaxed text-ink-muted">
             <ArrowLeftRight className="mt-0.5 h-3 w-3 shrink-0" aria-hidden />
             <span>
-              <span className="font-medium text-ink">Inverted CPR</span> — the raw
-              formula produced BC above TC, so the two were swapped to keep
+              <span className="font-medium text-ink">Inverted CPR</span> — the
+              raw formula produced BC above TC, so the two were swapped to keep
               TC ≥ BC. The width is unaffected.
             </span>
           </p>

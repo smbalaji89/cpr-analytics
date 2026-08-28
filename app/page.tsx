@@ -217,9 +217,13 @@ async function DashboardContent({
               instrumentName={instrument.name}
               tradingDate={activeDate}
               error={lookup.error}
+              suggestedHref={
+                lookup.error.suggestedDate
+                  ? `/?instrument=${symbol}&date=${lookup.error.suggestedDate}`
+                  : undefined
+              }
             />
           )}
-
         </div>
 
         <div className="space-y-4">
@@ -235,9 +239,22 @@ async function DashboardContent({
                 <dl className="space-y-2.5">
                   {(
                     [
-                      ["Category", classificationLabel(lookup.record.overallClassification)],
-                      ["Decided by", lookup.record.classificationMethod === "POINTS" ? "Width in points" : "Width %"],
-                      ["Range", `${formatPrice(lookup.record.bc)} – ${formatPrice(lookup.record.tc)}`],
+                      [
+                        "Category",
+                        classificationLabel(
+                          lookup.record.overallClassification,
+                        ),
+                      ],
+                      [
+                        "Decided by",
+                        lookup.record.classificationMethod === "POINTS"
+                          ? "Width in points"
+                          : "Width %",
+                      ],
+                      [
+                        "Range",
+                        `${formatPrice(lookup.record.bc)} – ${formatPrice(lookup.record.tc)}`,
+                      ],
                       ["Session", lookup.record.sourceDate],
                       ["Series", lookup.record.providerSymbol],
                     ] as const
@@ -285,7 +302,6 @@ async function DashboardContent({
               </p>
             </CardContent>
           </Card>
-
         </div>
       </div>
 
@@ -295,7 +311,9 @@ async function DashboardContent({
             {categories
               ? `${history.records.length} most recent ${categories
                   .map((c) => classificationLabel(c))
-                  .join(" / ")} session${history.records.length === 1 ? "" : "s"}`
+                  .join(
+                    " / ",
+                  )} session${history.records.length === 1 ? "" : "s"}`
               : "Last 10 trading sessions"}
           </CardTitle>
           <CardDescription>
@@ -307,8 +325,8 @@ async function DashboardContent({
               </>
             ) : null}
             &ldquo;CPR for&rdquo; is the session the levels apply to;
-            &ldquo;source session&rdquo; is the completed day whose H/L/C produced
-            them.
+            &ldquo;source session&rdquo; is the completed day whose H/L/C
+            produced them.
           </CardDescription>
           <CategoryFilterChips selected={categories} className="mt-3" />
         </CardHeader>
