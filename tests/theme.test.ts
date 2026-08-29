@@ -107,3 +107,70 @@ describe("colorForClassification", () => {
     );
   });
 });
+
+describe("filled surfaces stay legible in both modes", () => {
+  /**
+   * The bug this pins: `--color-brand` flipped from a dark neutral (light
+   * mode) to a near-white one (dark mode), but the logo, the DECIDES chip and
+   * the category filters paired `bg-brand` with a hardcoded `text-white`.
+   * In dark mode that rendered white on white — the elements vanished.
+   *
+   * A colour and the text placed ON it are a PAIR. Asserting the pair rather
+   * than either value is what makes this catchable.
+   */
+  function contrast(a: string, b: string): number {
+    const channel = (hex: string) =>
+      (hex.replace("#", "").match(/../g) ?? []).map((pair) => {
+        const v = parseInt(pair, 16) / 255;
+        return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+      });
+    const luminance = (hex: string) => {
+      const [r, g, b2] = channel(hex);
+      return 0.2126 * r + 0.7152 * g + 0.0722 * b2;
+    };
+    const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+    return (hi + 0.05) / (lo + 0.05);
+  }
+
+  it("pairs a foreground with the brand fill in BOTH modes", () => {
+    const lightBrand = readVar("@theme", "color-brand");
+    const lightOn = readVar("@theme", "color-on-brand");
+    const darkBrand = readVar(".dark", "color-brand");
+    const darkOn = readVar(".dark", "color-on-brand");
+
+    for (const [fill, text, mode] of [
+      [lightBrand, lightOn, "light"],
+      [darkBrand, darkOn, "dark"],
+    ] as const) {
+      expect(contrast(fill, text), `${mode}: text on brand fill`).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
+  it("keeps the brand fill and its foreground on opposite sides of mid-grey", () => {
+    // If both land light (or both dark) the element disappears, which is
+    // exactly what happened, so assert they genuinely invert.
+    const lightBrand = readVar("@theme", "color-brand");
+    const darkBrand = readVar(".dark", "color-brand");
+    expect(lightBrand).not.toBe(darkBrand);
+    expect(readVar("@theme", "color-on-brand")).not.toBe(
+      readVar(".dark", "color-on-brand"),
+    );
+  });
+
+  it("no component hardcodes a text colour on a brand fill", async () => {
+    // The token only helps if nothing bypasses it.
+    const { readdir, readFile } = await import("node:fs/promises");
+    const files = await readdir("components", { recursive: true });
+    for (const file of files) {
+      if (!String(file).endsWith(".tsx")) continue;
+      const source = await readFile(`components/${file}`, "utf8");
+      for (const line of source.split(/\r?\n/)) {
+        if (line.includes("bg-brand") && !line.includes("bg-brand-")) {
+          expect(line, `${file}: pair bg-brand with text-on-brand`).not.toMatch(
+            /text-white|text-black/,
+          );
+        }
+      }
+    }
+  });
+});

@@ -116,7 +116,7 @@ export function ClassificationBreakdown({
             {label}
           </span>
           {isDeciding ? (
-            <span className="rounded bg-brand px-1.5 py-0.5 eyebrow text-white">
+            <span className="rounded bg-brand px-1.5 py-0.5 eyebrow text-on-brand">
               decides
             </span>
           ) : null}

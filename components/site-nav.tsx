@@ -49,7 +49,7 @@ export function SiteNav({ privileged }: { privileged: boolean }) {
     <header className="sticky top-0 z-40 border-b border-line bg-surface-raised/95 backdrop-blur supports-[backdrop-filter]:bg-surface-raised/80">
       <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-3 px-4 sm:px-6">
         <Link href="/" className="flex items-center gap-2 font-semibold text-ink">
-          <span className="flex h-7 w-7 items-center justify-center rounded-md bg-brand text-white">
+          <span className="flex h-7 w-7 items-center justify-center rounded-md bg-brand text-on-brand">
             <Activity className="h-4 w-4" aria-hidden />
           </span>
           <span className="text-sm tracking-tight sm:text-base">

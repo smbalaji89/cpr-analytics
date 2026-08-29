@@ -92,7 +92,7 @@ export function CategoryFilterChips({
           data-on={selected === null}
           className={cn(
             "inline-flex h-9 items-center gap-1 rounded-lg border border-line bg-surface-raised px-3 text-xs font-medium text-ink-muted transition-colors hover:bg-brand-tint",
-            "data-[on=true]:border-brand data-[on=true]:bg-brand data-[on=true]:text-white",
+            "data-[on=true]:border-brand data-[on=true]:bg-brand data-[on=true]:text-on-brand",
           )}
         >
           All

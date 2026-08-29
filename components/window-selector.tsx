@@ -30,7 +30,7 @@ export function WindowSelector({
                 className={cn(
                   "inline-flex h-9 items-center whitespace-nowrap rounded-lg border px-3 text-xs font-medium transition-colors",
                   active
-                    ? "border-brand bg-brand text-white"
+                    ? "border-brand bg-brand text-on-brand"
                     : "border-line bg-surface-raised text-ink-muted hover:bg-brand-tint hover:text-brand",
                 )}
               >

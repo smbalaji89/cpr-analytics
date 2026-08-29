@@ -33,7 +33,7 @@ import { formatPercent, formatPrice } from "@/lib/utils/format";
 /** Marks the method that set this row's category. */
 function DecidesTag() {
   return (
-    <span className="ml-1.5 rounded bg-brand px-1.5 py-0.5 eyebrow text-white">
+    <span className="ml-1.5 rounded bg-brand px-1.5 py-0.5 eyebrow text-on-brand">
       decides
     </span>
   );

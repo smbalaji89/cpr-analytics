@@ -20,6 +20,9 @@
   --color-brand: #1f2937;
   --color-brand-soft: #64748b;
   --color-brand-tint: #eef1f5;
+  /* Foreground for anything FILLED with --color-brand. It must flip with the
+     brand, which is why hardcoded text-white broke in dark mode. */
+  --color-on-brand: #ffffff;
 
   --color-line: #e3e6ea;
 
@@ -54,6 +57,8 @@
   --color-brand: #e8edf5;
   --color-brand-soft: #94a3b8;
   --color-brand-tint: #232e40;
+  /* Brand is near-WHITE here, so its foreground must be dark ink. */
+  --color-on-brand: #0f151f;
 
   --color-line: #2b3648;
 

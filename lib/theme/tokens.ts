@@ -36,6 +36,15 @@ export const palette = {
   secondaryDark: "#1F2937",
   /** Interactive accent — deliberately a deep neutral, not a hue. */
   accent: "#1F2937",
+  /**
+   * Foreground for a brand-FILLED surface, light mode.
+   *
+   * This pair has to flip with the brand. Hardcoding `text-white` on a
+   * `bg-brand` element worked only while the brand was dark; once dark mode
+   * gave it a near-white brand, the logo, the DECIDES chip and the category
+   * filters became white-on-white.
+   */
+  onAccent: "#FFFFFF",
   accentSoft: "#64748B",
   accentTint: "#EEF1F5",
   border: "#E3E6EA",
