@@ -13,6 +13,7 @@ import {
 } from "@/lib/market-data";
 import { addDays } from "@/lib/utils/date";
 import { readEnv } from "@/lib/utils/env";
+import { isPrivileged } from "@/lib/auth/access";
 
 export const dynamic = "force-dynamic";
 
@@ -28,6 +29,18 @@ export const dynamic = "force-dynamic";
  * response is safe to share.
  */
 export async function GET() {
+  /**
+   * Public callers get liveness only.
+   *
+   * The full body names the database host and region, lists which environment
+   * variables are set, and maps every instrument to its provider — useful for
+   * debugging a deployment, and pure reconnaissance for anyone else. Unlock a
+   * device to see it.
+   */
+  if (!(await isPrivileged())) {
+    return apiSuccess({ status: "ok" }, { cache: CACHE.none });
+  }
+
   const started = Date.now();
 
   const config = {

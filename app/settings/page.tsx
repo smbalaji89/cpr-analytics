@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 import { CheckCircle2, XCircle } from "lucide-react";
 import { AdminPanel, CoverageTable } from "@/components/admin-panel";
 import { SiteHeader } from "@/components/site-header";
@@ -19,8 +20,22 @@ import {
 import { getDatabaseStatus } from "@/lib/services/db-status";
 import { retentionDays } from "@/lib/services/retention";
 import { hasEnv } from "@/lib/utils/env";
+import { isPrivileged } from "@/lib/auth/access";
+import { LockDeviceButton } from "@/components/lock-device-button";
 
-export const metadata: Metadata = { title: "Settings" };
+/**
+ * The gate runs during metadata generation, not in the component.
+ *
+ * `notFound()` thrown from the component body lands after the response has
+ * already been committed with the static `metadata` export, so the page
+ * renders the not-found UI but with a 200 — which still tells a prober the
+ * route exists. Deciding here happens before anything is sent, so the response
+ * is a real 404.
+ */
+export async function generateMetadata(): Promise<Metadata> {
+  if (!(await isPrivileged())) notFound();
+  return { title: "Settings" };
+}
 export const dynamic = "force-dynamic";
 
 /**
@@ -64,6 +79,10 @@ function StatusRow({
 }
 
 export default async function SettingsPage() {
+  // Belt and braces: generateMetadata already 404s an unprivileged request,
+  // but the component must never depend on that having run.
+  if (!(await isPrivileged())) notFound();
+
   const dbStatus = await getDatabaseStatus();
 
   let providerLabel = "Not configured";
@@ -118,6 +137,21 @@ export default async function SettingsPage() {
         </div>
 
         <div className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>This device</CardTitle>
+              <CardDescription>
+                Full access is stored in a cookie on this device only. Locking
+                it returns this browser to the public view; other devices are
+                unaffected. To revoke every device at once, rotate
+                ADMIN_ACCESS_KEY.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="pt-3">
+              <LockDeviceButton />
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader>
               <CardTitle>Appearance</CardTitle>

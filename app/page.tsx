@@ -11,6 +11,9 @@ import { DateSelector } from "@/components/date-selector";
 import { InstrumentSelector } from "@/components/instrument-selector";
 import { PivotLevelsPanel } from "@/components/pivot-levels";
 import { SiteHeader } from "@/components/site-header";
+import { isPrivileged } from "@/lib/auth/access";
+import { redactContext, redactRecords, redactRecordIf } from "@/lib/cpr/redact";
+import { noteFor } from "@/lib/instruments";
 import { ToggleLink } from "@/components/toggle-link";
 import {
   Card,
@@ -177,7 +180,7 @@ async function DashboardContent({
   if (!activeDate) {
     // Distinguish a permanent provider gap from a transient outage: telling
     // someone to try again later when it can never work is simply wrong.
-    const unsupported = unsupportedReason(symbol);
+    const unsupported = unsupportedReason(symbol, await isPrivileged());
     return (
       <div className="mt-4">
         <CPRUnavailableCard
@@ -195,10 +198,16 @@ async function DashboardContent({
     );
   }
 
-  const [{ lookup, context, today }, history] = await Promise.all([
+  const [{ lookup, context, today }, history, privileged] = await Promise.all([
     getCPRForDate(symbol, activeDate),
     getHistory(symbol, 10, undefined, categories),
+    isPrivileged(),
   ]);
+
+  // Redact HERE, before anything reaches a client component: the chart and
+  // table serialise whatever they are given into the page source.
+  const records = redactRecords(history.records, privileged);
+  const publicContext = redactContext(context, privileged);
 
   return (
     <div className="mt-4 space-y-4">
@@ -208,9 +217,9 @@ async function DashboardContent({
         <div className="space-y-4 lg:col-span-2">
           {lookup.available ? (
             <CPRCard
-              record={lookup.record}
+              record={redactRecordIf(lookup.record, privileged)}
               horizon={horizonFor(lookup.record, today)}
-              instrumentNote={instrument.note}
+              instrumentNote={noteFor(instrument, privileged)}
             />
           ) : (
             <CPRUnavailableCard
@@ -256,7 +265,10 @@ async function DashboardContent({
                         `${formatPrice(lookup.record.bc)} – ${formatPrice(lookup.record.tc)}`,
                       ],
                       ["Session", lookup.record.sourceDate],
-                      ["Series", lookup.record.providerSymbol],
+                      // Reads the REDACTED copy — the raw record still holds
+                      // the vendor's series key, and this block bypassed the
+                      // redaction by reaching for lookup.record directly.
+                      ["Series", redactRecordIf(lookup.record, privileged).providerSymbol],
                     ] as const
                   ).map(([label, value]) => (
                     <div
@@ -334,14 +346,14 @@ async function DashboardContent({
           <FilteredEmptyState totalBeforeFilter={history.totalBeforeFilter} />
         ) : (
           <CPRTable
-            records={history.records}
+            records={records}
             emptyMessage="No CPR data available for this instrument."
             className="mt-2"
           />
         )}
       </Card>
 
-      <ProvenanceNote context={context} className="px-1 pb-2" />
+      <ProvenanceNote context={publicContext} className="px-1 pb-2" />
     </div>
   );
 }

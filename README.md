@@ -12,6 +12,48 @@ Postgres (Supabase) · Vitest. Deploys to Vercel.
 
 ---
 
+## Sharing the site publicly
+
+The deployment is **public by default** and shows a redacted view. Set
+`ADMIN_ACCESS_KEY`, visit `/unlock` on your own devices, and those devices —
+and only those — see everything.
+
+| | Visitor | Unlocked device |
+| --- | --- | --- |
+| Every CPR figure, chart, filter, all 10 instruments | yes | yes |
+| Data source / provider names | — | yes |
+| Vendor series keys (`NSE_INDEX\|Nifty 50`) | — | yes |
+| `/settings` | **404** | full |
+| `/api/health` | `{"status":"ok"}` | database host, env keys, routing |
+| API record fields | 25 | 28 |
+| Response caching | shared CDN cache | `private, no-store` |
+
+Verified: every figure is byte-identical between the two views — redaction
+removes `dataSource`, `providerSymbol` and `isMockData` and touches nothing
+else.
+
+**Why redaction deletes fields rather than hiding them.** The provenance was
+never only in the footer: `/history` renders its charts as *client* components,
+so Next serialises whole record objects into the page source — 22 occurrences
+of the vendor name in one page's HTML, measured. Hiding the footer with CSS
+would have left all of it in view-source. So records are stripped at the two
+output boundaries (API responses, and page components before records reach a
+client component) and never on the write path, where `dataSource` still has to
+reach the database.
+
+**The synthetic-data banner is never hidden**, in either view. Showing invented
+prices without that warning is the one failure mode here capable of causing
+real harm, so a test asserts redaction cannot suppress it.
+
+**Unlock is per device**, stored in an httpOnly, Secure, SameSite=Lax cookie
+holding an HMAC of the key rather than the key itself. Rotate
+`ADMIN_ACCESS_KEY` to revoke every device at once; "Lock this device" in
+Settings clears just the current browser.
+
+This is obscurity, not secrecy — it stops casual curiosity and keeps your
+infrastructure from being enumerable. Anyone who knows Indian markets can still
+infer plenty from MCX coverage alone.
+
 ## Contents
 
 1. [Quick start](#quick-start)
@@ -63,6 +105,7 @@ variable is prefixed `NEXT_PUBLIC_`, and every one is read only in server code.
 | `DATABASE_URL` | No | Postgres connection string (Supabase **transaction pooler**, port 6543). Omit to run in live-compute mode. |
 | `DIRECT_DATABASE_URL` | For migrations | Supabase **direct** string (port 5432). Used by `db:migrate` only. |
 | `MARKET_DATA_PROVIDER` | No | `yahoo` (default), `upstox`, or `mock`. The DEFAULT only — instruments may route elsewhere. |
+| `ADMIN_ACCESS_KEY` | To share publicly | Unlocks the full view per device at `/unlock`. Unset = permanently public. |
 | `UPSTOX_ACCESS_TOKEN` | For Indian data | Analytics Token — free, valid 1 year, read-only. Set it and Indian instruments switch to Upstox automatically. |
 | `MARKET_DATA_API_KEY` | No | Reserved for providers that authenticate. Yahoo needs none. |
 | `ALLOW_MOCK_PROVIDER_IN_PRODUCTION` | No | Escape hatch; see below. |

@@ -1,4 +1,6 @@
-import { apiError, apiSuccess, apiUnexpected, CACHE } from "@/lib/api/response";
+import { apiError, apiSuccess, apiUnexpected, cacheFor, CACHE } from "@/lib/api/response";
+import { isPrivileged } from "@/lib/auth/access";
+import { redactContext, redactRecordIf } from "@/lib/cpr/redact";
 import { cprQuerySchema, formatZodError } from "@/lib/api/validation";
 import {
   getCPRForDate,
@@ -33,9 +35,10 @@ export async function GET(request: Request) {
     }
 
     const { instrument, date } = parsed.data;
+    const privilegedRequest = await isPrivileged();
 
     // A permanent provider gap must not be reported as a transient failure.
-    const unsupported = unsupportedReason(instrument);
+    const unsupported = unsupportedReason(instrument, privilegedRequest);
     if (unsupported) {
       return apiSuccess(
         {
@@ -61,7 +64,11 @@ export async function GET(request: Request) {
       tradingDate,
     );
 
+    const privileged = privilegedRequest;
     const isForward = tradingDate >= today;
+    const payload = lookup.available
+      ? { ...lookup, record: redactRecordIf(lookup.record, privileged) }
+      : lookup;
     return apiSuccess(
       {
         instrument,
@@ -74,15 +81,18 @@ export async function GET(request: Request) {
             : tradingDate === today
               ? "CURRENT"
               : "HISTORICAL",
-        ...lookup,
+        ...payload,
       },
       {
         meta: {
-          context,
+          context: redactContext(context, privileged),
           retentionDays: retentionDays(),
           earliestSelectableDate: retentionCutoff(today),
         },
-        cache: isForward ? CACHE.forward : CACHE.historical,
+        cache: cacheFor(
+          privileged,
+          isForward ? CACHE.forward : CACHE.historical,
+        ),
       },
     );
   } catch (error) {

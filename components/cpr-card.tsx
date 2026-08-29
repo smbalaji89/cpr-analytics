@@ -7,7 +7,8 @@ import {
 import { CPRRange, Stat } from "@/components/cpr-range";
 import { Card } from "@/components/ui/card";
 import type { Horizon } from "@/lib/services/cpr-service";
-import type { CPRRecord, CPRUnavailable } from "@/lib/types";
+import type { MaybeRedactedRecord } from "@/lib/cpr/redact";
+import type { CPRUnavailable } from "@/lib/types";
 import { formatDisplayDate, formatWeekday } from "@/lib/utils/date";
 import { formatPercent, formatPrice, formatWidth } from "@/lib/utils/format";
 
@@ -73,7 +74,7 @@ export function CPRCard({
   horizon,
   instrumentNote,
 }: {
-  record: CPRRecord;
+  record: MaybeRedactedRecord;
   horizon: Horizon;
   instrumentNote?: string | null;
 }) {

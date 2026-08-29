@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ClassificationBadge } from "@/components/classification-badge";
-import type { CPRRecord } from "@/lib/types";
+import type { MaybeRedactedRecord } from "@/lib/cpr/redact";
 import { cn } from "@/lib/utils/cn";
 import { formatDisplayDate, formatShortDate } from "@/lib/utils/date";
 import { formatPercent, formatPrice } from "@/lib/utils/format";
@@ -20,7 +20,7 @@ import { formatPercent, formatPrice } from "@/lib/utils/format";
  * prices is the single easiest way for a table like this to mislead.
  */
 
-function rowHref(record: CPRRecord): string {
+function rowHref(record: MaybeRedactedRecord): string {
   return `/?instrument=${record.instrumentSymbol}&date=${record.tradingDate}`;
 }
 
@@ -37,7 +37,7 @@ export function CPRTable({
   emptyMessage = "No CPR data available for this date.",
   className,
 }: {
-  records: CPRRecord[];
+  records: MaybeRedactedRecord[];
   emptyMessage?: string;
   className?: string;
 }) {

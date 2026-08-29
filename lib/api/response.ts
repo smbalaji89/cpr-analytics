@@ -47,7 +47,22 @@ export const CACHE = {
   /** Static registry data. */
   static: "public, s-maxage=86400, stale-while-revalidate=604800",
   none: "no-store",
+  /**
+   * For a response whose CONTENT depends on the access cookie.
+   *
+   * The CPR routes are served `public, s-maxage=300` and their Vary header
+   * does not include Cookie, so a shared CDN would happily cache a privileged
+   * response and hand it to the next anonymous caller. Privileged responses
+   * are therefore never stored, which keeps the shared cache holding only
+   * redacted content — the failure direction that matters.
+   */
+  privileged: "private, no-store",
 } as const;
+
+/** Pick the cache policy, downgrading to uncacheable when privileged. */
+export function cacheFor(privileged: boolean, policy: string): string {
+  return privileged ? CACHE.privileged : policy;
+}
 
 export function apiSuccess<T>(
   data: T,

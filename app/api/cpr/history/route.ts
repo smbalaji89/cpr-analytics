@@ -1,4 +1,6 @@
-import { apiError, apiSuccess, apiUnexpected, CACHE } from "@/lib/api/response";
+import { apiError, apiSuccess, apiUnexpected, cacheFor, CACHE } from "@/lib/api/response";
+import { isPrivileged } from "@/lib/auth/access";
+import { redactContext, redactRecords } from "@/lib/cpr/redact";
 import { formatZodError, historyQuerySchema } from "@/lib/api/validation";
 import { getHistory } from "@/lib/services/cpr-service";
 import { retentionCutoff, retentionDays } from "@/lib/services/retention";
@@ -33,6 +35,7 @@ export async function GET(request: Request) {
       category,
     );
 
+    const privileged = await isPrivileged();
     return apiSuccess(
       {
         instrument,
@@ -41,16 +44,16 @@ export async function GET(request: Request) {
         category,
         count: records.length,
         totalBeforeFilter,
-        records,
+        records: redactRecords(records, privileged),
       },
       {
         meta: {
-          context,
+          context: redactContext(context, privileged),
           retentionDays: retentionDays(),
           earliestSelectableDate: retentionCutoff(today),
         },
         // The newest row may be the projected next session, so use the shorter TTL.
-        cache: CACHE.forward,
+        cache: cacheFor(privileged, CACHE.forward),
       },
     );
   } catch (error) {

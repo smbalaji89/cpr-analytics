@@ -44,6 +44,10 @@ export function ProvenanceNote({
   context: DataContext;
   className?: string;
 }) {
+  // Redaction blanks the label. Rendering "Source: ." would be worse than
+  // rendering nothing, and this keeps every call site unchanged.
+  if (!context.providerLabel) return null;
+
   return (
     <p className={className}>
       <span className="inline-flex items-start gap-1.5 text-xs text-ink-muted">

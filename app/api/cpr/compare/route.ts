@@ -1,4 +1,6 @@
-import { apiError, apiSuccess, apiUnexpected, CACHE } from "@/lib/api/response";
+import { apiError, apiSuccess, apiUnexpected, cacheFor, CACHE } from "@/lib/api/response";
+import { isPrivileged } from "@/lib/auth/access";
+import { redactContext, redactRecordIf } from "@/lib/cpr/redact";
 import { compareQuerySchema, formatZodError } from "@/lib/api/validation";
 import { getComparison, getDefaultTradingDate } from "@/lib/services/cpr-service";
 import { DEFAULT_INSTRUMENT_SYMBOL, INSTRUMENTS } from "@/lib/instruments";
@@ -43,10 +45,12 @@ export async function GET(request: Request) {
       );
     }
 
+    const privileged = await isPrivileged();
     const { rows, context, totalBeforeFilter } = await getComparison(
       date,
       symbols,
       parsed.data.category,
+      privileged,
     );
     const today = todayInTimeZone("Asia/Kolkata");
 
@@ -57,15 +61,19 @@ export async function GET(request: Request) {
         count: rows.length,
         totalBeforeFilter,
         availableCount: rows.filter((r) => r.record !== null).length,
-        rows,
+        rows: rows.map((row) =>
+          row.record
+            ? { ...row, record: redactRecordIf(row.record, privileged) }
+            : row,
+        ),
       },
       {
         meta: {
-          context,
+          context: redactContext(context, privileged),
           retentionDays: retentionDays(),
           earliestSelectableDate: retentionCutoff(today),
         },
-        cache: CACHE.forward,
+        cache: cacheFor(privileged, CACHE.forward),
       },
     );
   } catch (error) {

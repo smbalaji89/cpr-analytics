@@ -15,6 +15,7 @@ import {
 } from "@/lib/db/repository";
 import {
   DEFAULT_INSTRUMENT_SYMBOL,
+  noteFor,
   INSTRUMENTS,
   requireInstrument,
   type Instrument,
@@ -396,7 +397,10 @@ async function getSeriesSafe(
  * fall through to a generic "try again later" — false for a permanent gap like
  * MCX under Yahoo.
  */
-export function unsupportedReason(symbol: string): CPRUnavailable | null {
+export function unsupportedReason(
+  symbol: string,
+  privileged = true,
+): CPRUnavailable | null {
   const instrument = requireInstrument(symbol);
   let provider: MarketDataProvider;
   try {
@@ -405,6 +409,16 @@ export function unsupportedReason(symbol: string): CPRUnavailable | null {
     return null; // Provider misconfigured entirely — a different problem.
   }
   if (provider.supports(instrument)) return null;
+
+  // The privileged message is a CONFIGURATION instruction — it names the
+  // vendor and the environment variable to set. Useful to the operator,
+  // meaningless and disclosing to everyone else.
+  if (!privileged) {
+    return {
+      reason: "PROVIDER_LACKS_INSTRUMENT",
+      message: `${instrument.name} is not available right now.`,
+    };
+  }
 
   return {
     reason: "PROVIDER_LACKS_INSTRUMENT",
@@ -876,6 +890,11 @@ export async function getComparison(
   tradingDate: ISODate,
   symbols: string[] = INSTRUMENTS.map((i) => i.symbol),
   categories: CategoryFilter = null,
+  /**
+   * Instrument notes name the data vendor for the MCX contracts, so the note
+   * carried on each row has to follow the caller's privilege too.
+   */
+  privileged = true,
 ): Promise<{
   rows: CompareRow[];
   context: DataContext;
@@ -911,7 +930,7 @@ export async function getComparison(
         name: instrument.name,
         category: instrument.category,
         currency: instrument.currency,
-        note: instrument.note,
+        note: noteFor(instrument, privileged),
       };
 
       const exact = (record: CPRRecord): CompareRow => ({

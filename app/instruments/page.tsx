@@ -25,6 +25,9 @@ import {
 } from "@/lib/instruments";
 import { MARKETS } from "@/lib/market-data/calendar";
 import { getProviderForInstrument } from "@/lib/market-data";
+import { isPrivileged } from "@/lib/auth/access";
+import { redactContext, redactRecordIf } from "@/lib/cpr/redact";
+import { noteFor } from "@/lib/instruments";
 import {
   getComparison,
   getDefaultTradingDate,
@@ -62,7 +65,7 @@ export default async function InstrumentsPage({ searchParams }: PageProps) {
           </h1>
           <p className="mt-0.5 text-sm text-ink-muted">
             CPR width across all {INSTRUMENTS.length} tracked instruments, plus
-            the calendar and data source each one follows.
+            the calendar each one follows.
           </p>
         </div>
 
@@ -103,10 +106,18 @@ async function ComparisonSection({
     );
   }
 
+  const privileged = await isPrivileged();
   const { rows, context, totalBeforeFilter } = await getComparison(
     target,
     undefined,
     categories,
+    privileged,
+  );
+
+  const publicRows = rows.map((row) =>
+    row.record
+      ? { ...row, record: redactRecordIf(row.record, privileged) }
+      : row,
   );
 
   return (
@@ -128,18 +139,19 @@ async function ComparisonSection({
             noun="instruments"
           />
         ) : (
-          <ComparisonTable rows={rows} className="mt-2" />
+          <ComparisonTable rows={publicRows} className="mt-2" />
         )}
       </Card>
 
       <ClassificationScaleNote />
-      <ProvenanceNote context={context} className="px-1" />
+      <ProvenanceNote context={redactContext(context, privileged)} className="px-1" />
     </div>
   );
 }
 
 /** Static registry view — which calendar and contract each instrument uses. */
-function InstrumentRegistry() {
+async function InstrumentRegistry() {
+  const privileged = await isPrivileged();
   const groups = instrumentsByCategory();
 
   return (
@@ -157,11 +169,13 @@ function InstrumentRegistry() {
               const market = MARKETS[instrument.market];
               // Resolved per instrument, not the configured default: the
               // Indian instruments route to Upstox while the default is Yahoo.
-              let source: string;
-              try {
-                source = getProviderForInstrument(instrument).label;
-              } catch {
-                source = "provider not configured";
+              let source: string | null = null;
+              if (privileged) {
+                try {
+                  source = getProviderForInstrument(instrument).label;
+                } catch {
+                  source = "provider not configured";
+                }
               }
               return (
                 <li key={instrument.symbol} className="py-3">
@@ -173,13 +187,13 @@ function InstrumentRegistry() {
                       {market.label} · {instrument.currency} ·{" "}
                       {market.tradesWeekends
                         ? "trades 24/7"
-                        : "weekdays, exchange holidays excluded"}{" "}
-                      · {source}
+                        : "weekdays, exchange holidays excluded"}
+                      {source ? ` · ${source}` : ""}
                     </span>
                   </div>
-                  {instrument.note ? (
+                  {noteFor(instrument, privileged) ? (
                     <p className="mt-1 text-xs leading-relaxed text-ink-muted">
-                      {instrument.note}
+                      {noteFor(instrument, privileged)}
                     </p>
                   ) : null}
                 </li>

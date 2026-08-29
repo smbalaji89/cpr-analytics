@@ -2,6 +2,7 @@ import { apiSuccess, apiUnexpected, CACHE } from "@/lib/api/response";
 import {
   CATEGORY_LABELS,
   instrumentsByCategory,
+  noteFor,
   DEFAULT_INSTRUMENT_SYMBOL,
 } from "@/lib/instruments";
 import { MARKETS } from "@/lib/market-data/calendar";
@@ -13,6 +14,12 @@ export const dynamic = "force-static";
  * GET /api/instruments
  *
  * Registry, grouped for the selector. Static data — cached aggressively.
+ *
+ * Always serves the PUBLIC note, even to an unlocked device. The route is
+ * `force-static`: it cannot read the access cookie, and one cached body is
+ * handed to everyone, so anything privileged placed here would leak to the
+ * next anonymous caller. Privileged readers get the full note on
+ * `/instruments`, which is dynamic.
  */
 export async function GET() {
   try {
@@ -31,7 +38,7 @@ export async function GET() {
         timeZone: MARKETS[instrument.market].timeZone,
         tradesWeekends: MARKETS[instrument.market].tradesWeekends,
         holidayCoverage: MARKETS[instrument.market].holidayCoverage,
-        note: instrument.note ?? null,
+        note: noteFor(instrument, false) ?? null,
       })),
     }));
 

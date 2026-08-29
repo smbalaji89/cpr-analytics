@@ -11,6 +11,9 @@ import { MockDataBanner, ProvenanceNote } from "@/components/data-notice";
 import { DateSelector } from "@/components/date-selector";
 import { InstrumentSelector } from "@/components/instrument-selector";
 import { SiteHeader } from "@/components/site-header";
+import { isPrivileged } from "@/lib/auth/access";
+import { redactContext, redactRecords, redactRecordIf } from "@/lib/cpr/redact";
+import { noteFor } from "@/lib/instruments";
 import { WindowSelector } from "@/components/window-selector";
 import {
   Card,
@@ -178,7 +181,7 @@ async function HistoryContent({
   if (!activeDate) {
     // Distinguish a permanent provider gap from a transient outage: telling
     // someone to try again later when it can never work is simply wrong.
-    const unsupported = unsupportedReason(symbol);
+    const unsupported = unsupportedReason(symbol, await isPrivileged());
     return (
       <div className="mt-4">
         <CPRUnavailableCard
@@ -203,10 +206,16 @@ async function HistoryContent({
     .sort()
     .reverse()[0];
 
-  const [{ lookup, context }, range] = await Promise.all([
+  const [{ lookup, context }, range, privileged] = await Promise.all([
     getCPRForDate(symbol, activeDate),
     getRangeSeries(symbol, start, today, categories),
+    isPrivileged(),
   ]);
+
+  // Redact before the charts and table receive them — those are client
+  // components, so their props are serialised into the page source.
+  const records = redactRecords(range.records, privileged);
+  const publicContext = redactContext(context, privileged);
 
   const buildHref = (value: number) => `/history?${baseQuery}&days=${value}`;
 
@@ -217,9 +226,9 @@ async function HistoryContent({
       <div className="grid gap-4 lg:grid-cols-2">
         {lookup.available ? (
           <CPRCard
-            record={lookup.record}
+            record={redactRecordIf(lookup.record, privileged)}
             horizon={horizonFor(lookup.record, today)}
-            instrumentNote={instrument.note}
+            instrumentNote={noteFor(instrument, privileged)}
           />
         ) : (
           <CPRUnavailableCard
@@ -243,7 +252,7 @@ async function HistoryContent({
               </CardDescription>
             </CardHeader>
             <CardContent className="pt-3">
-              <CPRChart records={range.records} metric="width" height={200} />
+              <CPRChart records={records} metric="width" height={200} />
             </CardContent>
           </Card>
 
@@ -256,7 +265,7 @@ async function HistoryContent({
             </CardHeader>
             <CardContent className="pt-3">
               <CPRChart
-                records={range.records}
+                records={records}
                 metric="widthPercent"
                 height={200}
               />
@@ -284,14 +293,14 @@ async function HistoryContent({
           <FilteredEmptyState totalBeforeFilter={range.totalBeforeFilter} />
         ) : (
           <CPRTable
-            records={range.records}
+            records={records}
             emptyMessage="No CPR data available for this range."
             className="mt-2"
           />
         )}
       </Card>
 
-      <ProvenanceNote context={context} className="px-1 pb-2" />
+      <ProvenanceNote context={publicContext} className="px-1 pb-2" />
     </div>
   );
 }

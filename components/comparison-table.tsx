@@ -2,6 +2,16 @@ import Link from "next/link";
 import { CalendarClock } from "lucide-react";
 import { ClassificationBadge } from "@/components/classification-badge";
 import type { CompareRow } from "@/lib/services/cpr-service";
+import type { MaybeRedactedRecord } from "@/lib/cpr/redact";
+
+/**
+ * The row as DISPLAYED — its record may have been redacted for a public
+ * visitor. The service's own `CompareRow` keeps the full record type, because
+ * the write path still needs it.
+ */
+type DisplayRow = Omit<CompareRow, "record"> & {
+  record: MaybeRedactedRecord | null;
+};
 import { CATEGORY_LABELS } from "@/lib/instruments";
 import { cn } from "@/lib/utils/cn";
 import { formatShortDate } from "@/lib/utils/date";
@@ -32,7 +42,7 @@ export function ComparisonTable({
   rows,
   className,
 }: {
-  rows: CompareRow[];
+  rows: DisplayRow[];
   className?: string;
 }) {
   const adjusted = rows.filter((r) => r.dateAdjusted);

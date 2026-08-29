@@ -19,7 +19,7 @@ import {
   classificationColorsDark,
   colorForClassification,
 } from "@/lib/theme/tokens";
-import type { CPRRecord } from "@/lib/types";
+import type { MaybeRedactedRecord } from "@/lib/cpr/redact";
 import { formatShortDate } from "@/lib/utils/date";
 import { formatCompact, formatPercent, formatPrice } from "@/lib/utils/format";
 
@@ -137,7 +137,7 @@ export function CPRChart({
   metric,
   height = 260,
 }: {
-  records: CPRRecord[];
+  records: MaybeRedactedRecord[];
   metric: "width" | "widthPercent";
   height?: number;
 }) {

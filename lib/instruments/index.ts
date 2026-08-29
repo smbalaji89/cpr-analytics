@@ -82,6 +82,15 @@ export interface Instrument {
    * user might assume from the name. Never leave a mismatch implicit.
    */
   note?: string;
+  /**
+   * The note shown to unprivileged visitors, where `note` names the data
+   * vendor or references configuration.
+   *
+   * The point is to drop the SOURCING, not the disclosure: which contract this
+   * is, its unit, and that the month rolls all still matter to anyone reading
+   * the levels. Only instruments whose `note` names a vendor need one.
+   */
+  publicNote?: string;
 }
 
 export const CATEGORY_LABELS: Record<InstrumentCategory, string> = {
@@ -198,6 +207,8 @@ export const INSTRUMENTS: Instrument[] = [
     classificationMethod: "PERCENTAGE",
     preferredProvider: "upstox",
     note: "MCX GOLD futures in INR per 10 grams — the contract Indian traders actually trade. Served through Upstox, which is the only source with MCX coverage; without an Upstox token this instrument is unavailable rather than substituted with a COMEX proxy. The contract month rolls automatically.",
+    publicNote:
+      "MCX GOLD futures in INR per 10 grams — the contract Indian traders actually trade, not a COMEX proxy. The contract month rolls automatically.",
   },
   {
     symbol: "SILVER_MCX",
@@ -211,6 +222,8 @@ export const INSTRUMENTS: Instrument[] = [
     classificationMethod: "PERCENTAGE",
     preferredProvider: "upstox",
     note: "MCX SILVER futures in INR per kilogram. Served through Upstox, the only source with MCX coverage. The contract month rolls automatically.",
+    publicNote:
+      "MCX SILVER futures in INR per kilogram. The contract month rolls automatically.",
   },
   {
     symbol: "CRUDEOIL_MCX",
@@ -224,6 +237,8 @@ export const INSTRUMENTS: Instrument[] = [
     classificationMethod: "PERCENTAGE",
     preferredProvider: "upstox",
     note: "MCX CRUDEOIL futures in INR per barrel. Served through Upstox, the only source with MCX coverage. Trades until 23:30 IST, so the next session's CPR appears later in the evening than for the equity markets.",
+    publicNote:
+      "MCX CRUDEOIL futures in INR per barrel. Trades until 23:30 IST, so the next session's CPR appears later in the evening than for the equity markets.",
   },
   {
     symbol: "BTC",
@@ -265,4 +280,16 @@ export function instrumentsByCategory(): {
     label: CATEGORY_LABELS[category],
     instruments: INSTRUMENTS.filter((i) => i.category === category),
   })).filter((group) => group.instruments.length > 0);
+}
+
+/**
+ * The note to show for this instrument.
+ *
+ * Falls back to `note` when there is no public variant, which is correct: a
+ * note that names no vendor is safe for everyone, and defaulting the other way
+ * would silently blank useful disclosures.
+ */
+export function noteFor(instrument: Instrument, privileged: boolean): string | undefined {
+  if (privileged) return instrument.note;
+  return instrument.publicNote ?? instrument.note;
 }
