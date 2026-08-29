@@ -268,19 +268,28 @@ async function DashboardContent({
                       // Reads the REDACTED copy — the raw record still holds
                       // the vendor's series key, and this block bypassed the
                       // redaction by reaching for lookup.record directly.
-                      ["Series", redactRecordIf(lookup.record, privileged).providerSymbol],
+                      [
+                        "Series",
+                        redactRecordIf(lookup.record, privileged)
+                          .providerSymbol,
+                      ],
                     ] as const
-                  ).map(([label, value]) => (
-                    <div
-                      key={label}
-                      className="flex items-baseline justify-between gap-3 border-b border-line pb-2.5 last:border-0 last:pb-0"
-                    >
-                      <dt className="text-xs text-ink-muted">{label}</dt>
-                      <dd className="numeric text-right text-sm font-medium text-ink">
-                        {value}
-                      </dd>
-                    </div>
-                  ))}
+                  )
+                    // Redaction removes the series, and a label with nothing
+                    // beside it reads as missing data rather than as absent
+                    // by design.
+                    .filter(([, value]) => Boolean(value))
+                    .map(([label, value]) => (
+                      <div
+                        key={label}
+                        className="flex items-baseline justify-between gap-3 border-b border-line pb-2.5 last:border-0 last:pb-0"
+                      >
+                        <dt className="text-xs text-ink-muted">{label}</dt>
+                        <dd className="numeric text-right text-sm font-medium text-ink">
+                          {value}
+                        </dd>
+                      </div>
+                    ))}
                 </dl>
               </CardContent>
             </Card>
