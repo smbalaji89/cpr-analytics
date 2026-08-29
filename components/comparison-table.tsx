@@ -13,7 +13,6 @@ type DisplayRow = Omit<CompareRow, "record"> & {
   record: MaybeRedactedRecord | null;
 };
 import { CATEGORY_LABELS } from "@/lib/instruments";
-import { cn } from "@/lib/utils/cn";
 import { formatShortDate } from "@/lib/utils/date";
 import { formatPercent, formatPrice } from "@/lib/utils/format";
 
@@ -247,34 +246,3 @@ export function ComparisonTable({
   );
 }
 
-/** Legend explaining which method decides each instrument's category. */
-export function ClassificationScaleNote({ className }: { className?: string }) {
-  return (
-    <div
-      className={cn(
-        "rounded-lg border border-line bg-surface-muted px-4 py-3 text-xs leading-relaxed text-ink-muted",
-        className,
-      )}
-    >
-      <p className="font-medium text-ink">
-        How each instrument&rsquo;s category is decided
-      </p>
-      <p className="mt-1">
-        <span className="font-medium text-ink">NIFTY 50</span> is classified by{" "}
-        <span className="font-medium text-ink">CPR width in points</span> (1–40
-        narrow, 41–70 mixed, 71–200 wider). Every{" "}
-        <span className="font-medium text-ink">other instrument</span> is
-        classified by <span className="font-medium text-ink">CPR width %</span>{" "}
-        (0.01–0.25 % narrow, 0.26–0.49 % mixed, ≥ 0.50 % wider).
-      </p>
-      <p className="mt-2">
-        The points bands were calibrated for a NIFTY-scale index and do not
-        transfer: Crude Oil near 85 produces a CPR under one point — below the
-        scale entirely — while BTC near 79,000 routinely exceeds 200 points.
-        Width % divides by the pivot, so it stays meaningful at any price scale.
-        Both methods are shown for every instrument; the one that sets the
-        category is tagged <em>decides</em>.
-      </p>
-    </div>
-  );
-}

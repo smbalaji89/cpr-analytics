@@ -142,7 +142,13 @@ describe("filled surfaces stay legible in both modes", () => {
       [lightBrand, lightOn, "light"],
       [darkBrand, darkOn, "dark"],
     ] as const) {
-      expect(contrast(fill, text), `${mode}: text on brand fill`).toBeGreaterThanOrEqual(4.5);
+      // A missing token would otherwise sail through as a null comparison.
+      expect(fill, `${mode}: --color-brand is defined`).toBeTruthy();
+      expect(text, `${mode}: --color-on-brand is defined`).toBeTruthy();
+      expect(
+        contrast(fill!, text!),
+        `${mode}: text on brand fill`,
+      ).toBeGreaterThanOrEqual(4.5);
     }
   });
 

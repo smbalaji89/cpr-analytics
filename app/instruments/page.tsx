@@ -4,10 +4,7 @@ import {
   CategoryFilterChips,
   FilteredEmptyState,
 } from "@/components/category-filter";
-import {
-  ClassificationScaleNote,
-  ComparisonTable,
-} from "@/components/comparison-table";
+import { ComparisonTable } from "@/components/comparison-table";
 import { MockDataBanner, ProvenanceNote } from "@/components/data-notice";
 import { SiteHeader } from "@/components/site-header";
 import {
@@ -143,7 +140,6 @@ async function ComparisonSection({
         )}
       </Card>
 
-      <ClassificationScaleNote />
       <ProvenanceNote context={redactContext(context, privileged)} className="px-1" />
     </div>
   );
