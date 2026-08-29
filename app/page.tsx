@@ -28,7 +28,6 @@ import {
   TableSkeleton,
 } from "@/components/ui/skeleton";
 import { classificationLabel } from "@/lib/cpr/classification";
-import { formatPrice } from "@/lib/utils/format";
 import { parseCategoryFilter, type CategoryFilter } from "@/lib/cpr/filter";
 import { DEFAULT_INSTRUMENT_SYMBOL, getInstrument } from "@/lib/instruments";
 import { retentionDays } from "@/lib/services/retention";
@@ -41,7 +40,7 @@ import {
   todayFor,
   unsupportedReason,
 } from "@/lib/services/cpr-service";
-import { isISODate, type ISODate } from "@/lib/utils/date";
+import { isISODate, type ISODate, formatDisplayDate } from "@/lib/utils/date";
 
 /**
  * Dashboard (PRD §3, §4, §37, §38).
@@ -260,11 +259,16 @@ async function DashboardContent({
                           ? "Width in points"
                           : "Width %",
                       ],
+                      // "Range" was BC–TC, which the ladder immediately to the
+                      // left already shows. Repeating it filled a row without
+                      // adding anything.
                       [
-                        "Range",
-                        `${formatPrice(lookup.record.bc)} – ${formatPrice(lookup.record.tc)}`,
+                        "Session",
+                        // Was raw ISO while the rest of the page reads
+                        // "28 Aug 2026" — three date formats on one screen,
+                        // and the ISO one looked like debug output.
+                        formatDisplayDate(lookup.record.sourceDate),
                       ],
-                      ["Session", lookup.record.sourceDate],
                       // Reads the REDACTED copy — the raw record still holds
                       // the vendor's series key, and this block bypassed the
                       // redaction by reaching for lookup.record directly.

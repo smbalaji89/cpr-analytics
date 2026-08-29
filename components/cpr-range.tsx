@@ -109,12 +109,21 @@ export function CPRRange({
 export function Stat({
   label,
   value,
+  unit,
   hint,
   emphasis,
   className,
 }: {
   label: string;
   value: React.ReactNode;
+  /**
+   * Rendered smaller and muted beside the figure.
+   *
+   * At display size a unit set in the same weight competes with the number —
+   * "28.72 points" read as one long string rather than as a quantity. The
+   * number is what is being compared; the unit only has to be legible.
+   */
+  unit?: string;
   hint?: string;
   emphasis?: boolean;
   className?: string;
@@ -136,6 +145,11 @@ export function Stat({
         )}
       >
         {value}
+        {unit ? (
+          <span className="ml-1.5 align-baseline text-base font-medium tracking-normal text-ink-muted sm:text-lg">
+            {unit}
+          </span>
+        ) : null}
       </div>
       {hint ? (
         <div className="mt-1.5 text-xs text-ink-muted">{hint}</div>

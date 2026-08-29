@@ -10,7 +10,7 @@ import type { Horizon } from "@/lib/services/cpr-service";
 import type { MaybeRedactedRecord } from "@/lib/cpr/redact";
 import type { CPRUnavailable } from "@/lib/types";
 import { formatDisplayDate, formatWeekday } from "@/lib/utils/date";
-import { formatPercent, formatPrice, formatWidth } from "@/lib/utils/format";
+import { formatPercent, formatPrice } from "@/lib/utils/format";
 
 /** Main CPR card (PRD §7, §13, §37, §38). */
 
@@ -115,12 +115,14 @@ export function CPRCard({
           <div className="grid grid-cols-2 gap-3 sm:col-span-2 sm:grid-cols-1">
             <Stat
               label="CPR Width"
-              value={formatWidth(record.cprWidth)}
+              value={formatPrice(record.cprWidth)}
+              unit={record.cprWidth === 1 ? "point" : "points"}
               emphasis
             />
             <Stat
               label="Width %"
-              value={formatPercent(record.cprWidthPercent)}
+              value={formatPercent(record.cprWidthPercent).replace("%", "")}
+              unit="%"
               emphasis
             />
           </div>
