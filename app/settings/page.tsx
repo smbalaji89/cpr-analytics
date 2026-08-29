@@ -126,17 +126,17 @@ export default async function SettingsPage() {
   return (
     <div className="min-h-dvh bg-surface-muted">
       <SiteHeader />
-      <main className="mx-auto max-w-3xl px-4 py-4 sm:px-6 sm:py-6">
-        <div className="mb-4">
-          <h1 className="text-lg font-semibold tracking-tight text-ink sm:text-xl">
+      <main className="mx-auto max-w-3xl px-4 py-5 sm:px-6 sm:py-8">
+        <div className="mb-5 sm:mb-6">
+          <h1 className="text-xl font-semibold tracking-tight text-ink sm:text-2xl">
             Settings
           </h1>
-          <p className="mt-0.5 text-sm text-ink-muted">
+          <p className="mt-1 text-sm text-ink-muted">
             Appearance and system status.
           </p>
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-5">
           <Card>
             <CardHeader>
               <CardTitle>This device</CardTitle>

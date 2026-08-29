@@ -59,20 +59,17 @@ function Level({ label, value, tone, position }: LevelProps) {
       </span>
 
       <span
-        className={cn(
-          "text-[11px] font-semibold uppercase tracking-wider",
-          isPivot ? "text-brand" : "text-ink-muted",
-        )}
+        className={cn("eyebrow", isPivot ? "text-ink" : "text-ink-muted")}
       >
         {label}
       </span>
 
       <span
         className={cn(
-          "numeric tabular-nums",
+          "display-figure",
           isPivot
-            ? "text-xl font-semibold text-brand sm:text-2xl"
-            : "text-lg font-medium text-ink sm:text-xl",
+            ? "text-2xl font-semibold text-ink sm:text-3xl"
+            : "text-xl font-medium text-ink-secondary sm:text-2xl",
         )}
       >
         {formatPrice(value)}
@@ -125,23 +122,23 @@ export function Stat({
   return (
     <div
       className={cn(
-        "flex flex-col justify-center rounded-xl border border-line bg-surface-raised px-4 py-3.5",
+        "flex flex-col justify-center rounded-xl border border-line bg-surface-raised px-4 py-4 sm:px-5 sm:py-5",
         className,
       )}
     >
-      <div className="text-[11px] font-semibold uppercase tracking-wider text-ink-muted">
-        {label}
-      </div>
+      <div className="eyebrow text-ink-muted">{label}</div>
       <div
         className={cn(
-          "numeric mt-1 font-semibold text-ink",
-          emphasis ? "text-2xl sm:text-[1.75rem]" : "text-lg sm:text-xl",
+          "display-figure mt-1.5 font-semibold text-ink",
+          emphasis
+            ? "text-[2.125rem] sm:text-[2.75rem]"
+            : "text-2xl sm:text-[1.75rem]",
         )}
       >
         {value}
       </div>
       {hint ? (
-        <div className="mt-1 text-[11px] text-ink-muted">{hint}</div>
+        <div className="mt-1.5 text-xs text-ink-muted">{hint}</div>
       ) : null}
     </div>
   );

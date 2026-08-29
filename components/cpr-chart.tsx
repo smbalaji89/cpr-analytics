@@ -123,7 +123,7 @@ function Legend({ isDark }: { isDark: boolean }) {
             className="inline-block h-2 w-2 rounded-full"
             style={{ background: color }}
           />
-          <span className="text-[11px] text-ink-muted">
+          <span className="text-xs text-ink-muted">
             {classificationLabel(key as never)}
           </span>
         </li>

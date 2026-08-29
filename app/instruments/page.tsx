@@ -58,12 +58,12 @@ export default async function InstrumentsPage({ searchParams }: PageProps) {
   return (
     <div className="min-h-dvh bg-surface-muted">
       <SiteHeader />
-      <main className="mx-auto max-w-7xl px-4 py-4 sm:px-6 sm:py-6">
-        <div className="mb-4">
-          <h1 className="text-lg font-semibold tracking-tight text-ink sm:text-xl">
+      <main className="mx-auto max-w-7xl px-4 py-5 sm:px-6 sm:py-8">
+        <div className="mb-5 sm:mb-6">
+          <h1 className="text-xl font-semibold tracking-tight text-ink sm:text-2xl">
             Instruments
           </h1>
-          <p className="mt-0.5 text-sm text-ink-muted">
+          <p className="mt-1 text-sm text-ink-muted">
             CPR width across all {INSTRUMENTS.length} tracked instruments, plus
             the calendar each one follows.
           </p>
@@ -183,7 +183,7 @@ async function InstrumentRegistry() {
                     <span className="text-sm font-medium text-ink">
                       {instrument.name}
                     </span>
-                    <span className="text-[11px] text-ink-muted">
+                    <span className="text-xs text-ink-muted">
                       {market.label} · {instrument.currency} ·{" "}
                       {market.tradesWeekends
                         ? "trades 24/7"

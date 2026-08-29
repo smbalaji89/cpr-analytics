@@ -80,7 +80,7 @@ export function InstrumentSelector({
                 {index > 0 ? (
                   <div className="my-1 h-px bg-line" role="presentation" />
                 ) : null}
-                <Select.Label className="px-2 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-ink-muted">
+                <Select.Label className="px-2 py-1.5 eyebrow text-ink-muted">
                   {group.label}
                 </Select.Label>
                 {group.instruments.map((instrument) => (
@@ -90,7 +90,7 @@ export function InstrumentSelector({
                     className="relative flex h-10 cursor-pointer select-none items-center gap-2 rounded-md px-2 pr-8 text-sm text-ink outline-none data-[highlighted]:bg-brand-tint data-[highlighted]:text-ink"
                   >
                     <Select.ItemText>{instrument.name}</Select.ItemText>
-                    <span className="text-[11px] text-ink-muted">
+                    <span className="text-xs text-ink-muted">
                       {instrument.currency}
                     </span>
                     <Select.ItemIndicator className="absolute right-2">

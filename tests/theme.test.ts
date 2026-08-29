@@ -62,14 +62,12 @@ describe("theme tokens stay in sync with globals.css", () => {
     expect(readVar("@theme", "color-ink")).toBe(
       palette.primaryDark.toLowerCase(),
     );
-    expect(readVar("@theme", "color-brand")).toBe(
-      palette.primaryPurple.toLowerCase(),
-    );
+    expect(readVar("@theme", "color-brand")).toBe(palette.accent.toLowerCase());
     expect(readVar("@theme", "color-brand-soft")).toBe(
-      palette.secondaryPurple.toLowerCase(),
+      palette.accentSoft.toLowerCase(),
     );
     expect(readVar("@theme", "color-brand-tint")).toBe(
-      palette.lightPurple.toLowerCase(),
+      palette.accentTint.toLowerCase(),
     );
     expect(readVar("@theme", "color-line")).toBe(palette.border.toLowerCase());
   });

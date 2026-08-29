@@ -33,7 +33,7 @@ const STYLES: Record<AnyClassification, string> = {
 };
 
 const SIZES = {
-  sm: "px-2 py-0.5 text-[11px]",
+  sm: "px-2 py-0.5 text-xs",
   md: "px-2.5 py-1 text-xs",
   lg: "px-4 py-2 text-base sm:text-lg",
 } as const;
@@ -112,11 +112,11 @@ export function ClassificationBreakdown({
         )}
       >
         <div className="flex items-center gap-1.5">
-          <span className="text-[11px] font-medium uppercase tracking-wide text-ink-muted">
+          <span className="text-xs font-medium uppercase tracking-wide text-ink-muted">
             {label}
           </span>
           {isDeciding ? (
-            <span className="rounded bg-brand px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-white">
+            <span className="rounded bg-brand px-1.5 py-0.5 eyebrow text-white">
               decides
             </span>
           ) : null}

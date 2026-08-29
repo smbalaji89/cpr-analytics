@@ -16,9 +16,10 @@
   --color-ink-secondary: #1f2937;
   --color-ink-muted: #52606d;
 
-  --color-brand: #7c3aed;
-  --color-brand-soft: #a78bfa;
-  --color-brand-tint: #f3e8ff;
+  /* Chrome is neutral so the four data hues stay unambiguous — see tokens.ts. */
+  --color-brand: #1f2937;
+  --color-brand-soft: #64748b;
+  --color-brand-tint: #eef1f5;
 
   --color-line: #e3e6ea;
 
@@ -47,9 +48,12 @@
   --color-ink-secondary: #e5e7eb;
   --color-ink-muted: #a7b0bd;
 
-  --color-brand: #a78bfa;
-  --color-brand-soft: #7c3aed;
-  --color-brand-tint: #2e1065;
+  /* A near-white accent and a LOW-CHROMA surface lift. The old #2e1065 was a
+     saturated violet sitting on cool blue-grey surfaces, which is what made
+     selection look wrong in dark mode. */
+  --color-brand: #e8edf5;
+  --color-brand-soft: #94a3b8;
+  --color-brand-tint: #232e40;
 
   --color-line: #2b3648;
 
@@ -77,6 +81,33 @@ body {
 .numeric {
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum";
+}
+
+/*
+ * Display figures.
+ *
+ * The app had collapsed into a single whisper: 124 of ~140 sized elements sat
+ * at 14px or below, with only three above 20px. Nothing led, so everything
+ * competed. A dashboard should open with the number you came for.
+ *
+ * Large tabular numerals need negative tracking — default spacing looks loose
+ * and disconnected once digits get big.
+ */
+.display-figure {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+}
+
+/* Micro-labels above a figure. One size, used consistently, rather than the
+   9/10/11px drift that made spacing look accidental. */
+.eyebrow {
+  font-size: 0.6875rem; /* 11px */
+  line-height: 1rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 
 *:focus-visible {

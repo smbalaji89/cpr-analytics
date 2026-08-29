@@ -83,7 +83,7 @@ export function CPRCard({
       <div className="border-b border-line bg-surface-muted/40 px-4 py-4 sm:px-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] font-semibold uppercase tracking-wider text-brand">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 eyebrow text-brand">
               <span>{HORIZON_LABEL[horizon]}</span>
               {record.projected ? (
                 <span className="rounded bg-brand-tint px-1.5 py-0.5 text-brand">
@@ -152,7 +152,7 @@ export function CPRCard({
         {/* Source session — PRD §13, and the answer to "which day made this?" */}
         <div className="mt-4 border-t border-line pt-3.5">
           <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
-            <span className="text-[11px] font-medium uppercase tracking-wider text-ink-muted">
+            <span className="text-xs font-medium uppercase tracking-wider text-ink-muted">
               Derived from {formatDisplayDate(record.sourceDate)}
             </span>
             <dl className="numeric flex flex-wrap items-baseline gap-x-5 gap-y-1 text-sm">
@@ -164,7 +164,7 @@ export function CPRCard({
                 ] as const
               ).map(([label, value]) => (
                 <div key={label} className="flex items-baseline gap-1.5">
-                  <dt className="text-[11px] uppercase tracking-wider text-ink-muted">
+                  <dt className="text-xs uppercase tracking-wider text-ink-muted">
                     {label}
                   </dt>
                   <dd className="font-medium text-ink">{formatPrice(value)}</dd>
@@ -189,7 +189,7 @@ export function CPRCard({
                 <>
                   {" "}
                   Series:{" "}
-                  <code className="rounded bg-surface-muted px-1 py-0.5 text-[11px] text-ink">
+                  <code className="rounded bg-surface-muted px-1 py-0.5 text-xs text-ink">
                     {record.providerSymbol}
                   </code>
                   .

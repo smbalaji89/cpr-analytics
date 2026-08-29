@@ -26,7 +26,7 @@ function rowHref(record: MaybeRedactedRecord): string {
 
 function ProjectedTag() {
   return (
-    <span className="ml-1.5 rounded bg-brand-tint px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-brand">
+    <span className="ml-1.5 rounded bg-brand-tint px-1.5 py-0.5 text-xs font-medium uppercase tracking-wide text-brand">
       projected
     </span>
   );
@@ -58,13 +58,13 @@ export function CPRTable({
             <tr className="border-b border-line text-left">
               <th
                 scope="col"
-                className="px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-ink-muted"
+                className="px-3 py-2.5 eyebrow text-ink-muted"
               >
                 CPR for
               </th>
               <th
                 scope="col"
-                className="px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-ink-muted"
+                className="px-3 py-2.5 eyebrow text-ink-muted"
               >
                 Source session
               </th>
@@ -72,26 +72,26 @@ export function CPRTable({
                 <th
                   key={label}
                   scope="col"
-                  className="px-3 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wide text-ink-muted"
+                  className="px-3 py-2.5 text-right eyebrow text-ink-muted"
                 >
                   {label}
                 </th>
               ))}
               <th
                 scope="col"
-                className="px-3 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wide text-ink-muted"
+                className="px-3 py-2.5 text-right eyebrow text-ink-muted"
               >
                 Width
               </th>
               <th
                 scope="col"
-                className="px-3 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wide text-ink-muted"
+                className="px-3 py-2.5 text-right eyebrow text-ink-muted"
               >
                 Width %
               </th>
               <th
                 scope="col"
-                className="px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-ink-muted"
+                className="px-3 py-2.5 eyebrow text-ink-muted"
               >
                 Classification
               </th>
@@ -162,7 +162,7 @@ export function CPRTable({
                     {formatDisplayDate(record.tradingDate)}
                     {record.projected ? <ProjectedTag /> : null}
                   </div>
-                  <div className="numeric mt-0.5 text-[11px] text-ink-muted">
+                  <div className="numeric mt-0.5 text-xs text-ink-muted">
                     from {formatShortDate(record.sourceDate)} session
                   </div>
                 </div>
@@ -174,7 +174,7 @@ export function CPRTable({
 
               <div className="mt-2.5 grid grid-cols-2 gap-2">
                 <div className="rounded-md bg-surface-muted px-2.5 py-1.5">
-                  <div className="text-[10px] uppercase tracking-wide text-ink-muted">
+                  <div className="text-xs uppercase tracking-wide text-ink-muted">
                     Width
                   </div>
                   <div className="numeric text-sm font-semibold text-ink">
@@ -182,7 +182,7 @@ export function CPRTable({
                   </div>
                 </div>
                 <div className="rounded-md bg-surface-muted px-2.5 py-1.5">
-                  <div className="text-[10px] uppercase tracking-wide text-ink-muted">
+                  <div className="text-xs uppercase tracking-wide text-ink-muted">
                     Width %
                   </div>
                   <div className="numeric text-sm font-semibold text-ink">
@@ -191,7 +191,7 @@ export function CPRTable({
                 </div>
               </div>
 
-              <div className="numeric mt-2 flex justify-between gap-2 text-[11px] text-ink-muted">
+              <div className="numeric mt-2 flex justify-between gap-2 text-xs text-ink-muted">
                 <span>BC {formatPrice(record.bc)}</span>
                 <span>P {formatPrice(record.pivot)}</span>
                 <span>TC {formatPrice(record.tc)}</span>

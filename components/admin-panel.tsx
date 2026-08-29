@@ -87,7 +87,7 @@ export function AdminPanel({ enabled }: { enabled: boolean }) {
       <form action={syncFormAction} className="space-y-2.5">
         <div className="grid gap-2.5 sm:grid-cols-2">
           <label className="block">
-            <span className="text-[11px] font-medium uppercase tracking-wide text-ink-muted">
+            <span className="text-xs font-medium uppercase tracking-wide text-ink-muted">
               Instrument
             </span>
             <select
@@ -104,7 +104,7 @@ export function AdminPanel({ enabled }: { enabled: boolean }) {
             </select>
           </label>
           <label className="block">
-            <span className="text-[11px] font-medium uppercase tracking-wide text-ink-muted">
+            <span className="text-xs font-medium uppercase tracking-wide text-ink-muted">
               Admin secret
             </span>
             <input
@@ -136,7 +136,7 @@ export function AdminPanel({ enabled }: { enabled: boolean }) {
         className="space-y-2.5 border-t border-line pt-5"
       >
         <label className="block sm:max-w-xs">
-          <span className="text-[11px] font-medium uppercase tracking-wide text-ink-muted">
+          <span className="text-xs font-medium uppercase tracking-wide text-ink-muted">
             Admin secret
           </span>
           <input
@@ -181,7 +181,7 @@ export function CoverageTable({
               <th
                 key={h}
                 scope="col"
-                className="px-2 py-2 text-[11px] font-semibold uppercase tracking-wide text-ink-muted"
+                className="px-2 py-2 eyebrow text-ink-muted"
               >
                 {h}
               </th>
@@ -205,7 +205,7 @@ export function CoverageTable({
               <td className="numeric px-2 py-2 text-ink-muted">
                 {row.newest ?? "—"}
               </td>
-              <td className="numeric px-2 py-2 text-[11px] text-ink-muted">
+              <td className="numeric px-2 py-2 text-xs text-ink-muted">
                 {row.providerSymbol ?? "—"}
               </td>
             </tr>

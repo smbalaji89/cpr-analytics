@@ -84,7 +84,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
   return (
     <div className="min-h-dvh bg-surface-muted">
       <SiteHeader />
-      <main className="mx-auto max-w-7xl px-4 py-4 sm:px-6 sm:py-6">
+      <main className="mx-auto max-w-7xl px-4 py-5 sm:px-6 sm:py-8">
         {/* Controls — one row above the content on every breakpoint. */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <InstrumentSelector
@@ -210,10 +210,10 @@ async function DashboardContent({
   const publicContext = redactContext(context, privileged);
 
   return (
-    <div className="mt-4 space-y-4">
+    <div className="mt-5 space-y-5">
       <MockDataBanner context={context} />
 
-      <div className="grid gap-4 lg:grid-cols-3">
+      <div className="grid gap-5 lg:grid-cols-3">
         <div className="space-y-4 lg:col-span-2">
           {lookup.available ? (
             <CPRCard

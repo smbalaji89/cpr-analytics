@@ -33,7 +33,7 @@ import { formatPercent, formatPrice } from "@/lib/utils/format";
 /** Marks the method that set this row's category. */
 function DecidesTag() {
   return (
-    <span className="ml-1.5 rounded bg-brand px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-white">
+    <span className="ml-1.5 rounded bg-brand px-1.5 py-0.5 eyebrow text-white">
       decides
     </span>
   );
@@ -69,7 +69,7 @@ export function ComparisonTable({
                 <th
                   key={label}
                   scope="col"
-                  className="px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-ink-muted"
+                  className="px-3 py-2.5 eyebrow text-ink-muted"
                 >
                   {label}
                 </th>
@@ -78,7 +78,7 @@ export function ComparisonTable({
                 <th
                   key={label}
                   scope="col"
-                  className="px-3 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wide text-ink-muted"
+                  className="px-3 py-2.5 text-right eyebrow text-ink-muted"
                 >
                   {label}
                 </th>
@@ -87,7 +87,7 @@ export function ComparisonTable({
                 <th
                   key={label}
                   scope="col"
-                  className="px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-ink-muted"
+                  className="px-3 py-2.5 eyebrow text-ink-muted"
                 >
                   {label}
                 </th>
@@ -107,7 +107,7 @@ export function ComparisonTable({
                   >
                     {row.instrument.name}
                   </Link>
-                  <div className="text-[11px] text-ink-muted">
+                  <div className="text-xs text-ink-muted">
                     {
                       CATEGORY_LABELS[
                         row.instrument
@@ -120,7 +120,7 @@ export function ComparisonTable({
                 <td className="numeric whitespace-nowrap px-3 py-2.5 text-ink-muted">
                   {row.tradingDate ? formatShortDate(row.tradingDate) : "—"}
                   {row.dateAdjusted ? (
-                    <span className="ml-1.5 rounded bg-surface-muted px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-ink-muted">
+                    <span className="ml-1.5 rounded bg-surface-muted px-1.5 py-0.5 text-xs uppercase tracking-wide text-ink-muted">
                       other date
                     </span>
                   ) : null}
@@ -184,7 +184,7 @@ export function ComparisonTable({
                 >
                   {row.instrument.name}
                 </Link>
-                <div className="numeric mt-0.5 text-[11px] text-ink-muted">
+                <div className="numeric mt-0.5 text-xs text-ink-muted">
                   {row.tradingDate ? formatShortDate(row.tradingDate) : "—"}
                   {row.dateAdjusted ? " · other date" : ""}
                 </div>
@@ -201,7 +201,7 @@ export function ComparisonTable({
               <>
                 <div className="mt-2.5 grid grid-cols-2 gap-2">
                   <div className="rounded-md bg-surface-muted px-2.5 py-1.5">
-                    <div className="text-[10px] uppercase tracking-wide text-ink-muted">
+                    <div className="text-xs uppercase tracking-wide text-ink-muted">
                       Width
                     </div>
                     <div className="numeric text-sm font-semibold text-ink">
@@ -209,7 +209,7 @@ export function ComparisonTable({
                     </div>
                   </div>
                   <div className="rounded-md bg-surface-muted px-2.5 py-1.5">
-                    <div className="text-[10px] uppercase tracking-wide text-ink-muted">
+                    <div className="text-xs uppercase tracking-wide text-ink-muted">
                       Width %
                     </div>
                     <div className="numeric text-sm font-semibold text-ink">
@@ -217,7 +217,7 @@ export function ComparisonTable({
                     </div>
                   </div>
                 </div>
-                <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[11px] text-ink-muted">
+                <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-ink-muted">
                   <span className="flex items-center gap-1.5">
                     points
                     <ClassificationBadge

@@ -75,7 +75,7 @@ export function CategoryFilterChips({
         className,
       )}
     >
-      <span className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-ink-muted">
+      <span className="flex items-center gap-1.5 eyebrow text-ink-muted">
         <ListFilter className="h-3.5 w-3.5" aria-hidden />
         {label}
       </span>

@@ -12,13 +12,32 @@
  */
 
 /** Base palette from PRD §18. Change colours HERE (and in globals.css). */
+/**
+ * ── Why the interface chrome carries no hue ────────────────────────────────
+ * Five saturated slots do not separate reliably. The four classification hues
+ * are fixed and validated; every candidate brand hue measured against them
+ * collided:
+ *
+ *   indigo #4338CA vs NARROW #7C3AED  ->  ΔE 11.1 normal, 6.9 protan   FAIL
+ *   blue   #2563EB vs NARROW #7C3AED  ->  ΔE 12.4 normal, 0.4 deutan   FAIL
+ *   blue   #1D4ED8 vs NARROW #7C3AED  ->  ΔE 13.0 normal, 3.4 protan   FAIL
+ *
+ * Moving NARROW to blue and giving the brand violet only relocated the same
+ * collision, and its dark set then failed the normal-vision floor at ΔE 14.9.
+ *
+ * So hue is reserved for DATA and the chrome is neutral: "this is clickable"
+ * is carried by weight, underline and a surface lift instead of by colour.
+ * That also removes the saturated violet selection highlight, which read badly
+ * against the cool dark surfaces.
+ */
 export const palette = {
   background: "#FFFFFF",
   primaryDark: "#111827",
   secondaryDark: "#1F2937",
-  primaryPurple: "#7C3AED",
-  secondaryPurple: "#A78BFA",
-  lightPurple: "#F3E8FF",
+  /** Interactive accent — deliberately a deep neutral, not a hue. */
+  accent: "#1F2937",
+  accentSoft: "#64748B",
+  accentTint: "#EEF1F5",
   border: "#E3E6EA",
 } as const;
 
